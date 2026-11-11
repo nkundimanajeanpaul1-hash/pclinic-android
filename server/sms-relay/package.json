@@ -1,0 +1,10 @@
+{
+  "name": "pclinic-sms-relay",
+  "description": "Holds the SMS provider key so PClinic Pro's recovery codes never ship a secret inside the APK.",
+  "private": true,
+  "main": "index.js",
+  "engines": { "node": "22" },
+  "dependencies": {
+    "firebase-functions": "^6.1.0"
+  }
+}

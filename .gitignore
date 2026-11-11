@@ -1,0 +1,30 @@
+# Dependencies
+node_modules/
+
+# Signing material — never commit these
+*.jks
+*.keystore
+android/keystore.properties
+android/app/*.keystore.jks
+
+# Function environment — holds SMS_PROVIDER / sender names, never commit
+.env
+
+# IDE / OS junk
+.idea/
+.DS_Store
+*.iml
+.gradle/
+
+# Build output
+android/build/
+android/app/build/
+android/captures/
+android/local.properties
+www/assets/
+*.apk
+*.aab
+
+# Local notes
+DO-NOT-UPLOAD-read-this-first.txt
+firebase.json.hospital-original

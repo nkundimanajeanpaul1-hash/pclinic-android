@@ -1,0 +1,9 @@
+{
+  "functions": [
+    {
+      "source": ".",
+      "codebase": "sms-relay",
+      "runtime": "nodejs22"
+    }
+  ]
+}

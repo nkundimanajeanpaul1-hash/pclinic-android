@@ -1,0 +1,101 @@
+UPLOAD THIS — 2026-11-11 security & language pass
+=================================================
+
+You upload through the github.com web page, which does NOT read .gitignore.
+So upload exactly the files in section A and never the ones in section B.
+
+A. CHANGED FILES TO UPLOAD
+  www/index.html                                  (all app code lives here)
+  tests/app-contracts.test.mjs                    (21 contract tests)
+  firebase.json                                   (rewritten for this repo)
+  android/app/build.gradle                        (versionCode 3 / 1.2, signing order fixed)
+  .gitignore                                      (now ignores .env)
+  package.json                                    (build:release uses sh gradlew)
+  server/sms-relay/DEPLOY.md                      (steps 2-4 corrected)
+  server/sms-relay/firebase.json                  (NEW - makes the deploy command work)
+  server/drive-setup.md                           (NEW - Google Drive console checklist)
+  android/app/src/main/assets/public/index.html   (copy of www/index.html, from cap sync)
+
+  Do NOT upload firebase.json.hospital-original - it is the old config from the hospital
+  web app, kept here only so nothing was lost. Delete it whenever you are sure.
+
+B. NEVER UPLOAD (these are secrets, and the web upload will not skip them)
+  Pclinic-2026.jks                     signing key - if this leaks, anyone can publish
+                                       updates that your users' phones accept
+  Pclinic.jks                          old key, password lost, unused - still secret
+  android/keystore.properties          the keystore passwords
+  server/sms-relay/.env                SMS provider settings (created when you deploy)
+  node_modules/                        294 folders of other people's code
+  .idea/  .DS_Store  DO-NOT-UPLOAD-read-this-first.txt
+
+C. WHAT CHANGED IN THE APP
+  * Every message the app shows at runtime now goes through the translation tables.
+    Before this, toasts, backup warnings and the reset wizard were English-only.
+    The button text shown while work runs ("Signing in...", "Saving...") is included,
+    along with the clipboard/e-mail replies, the "Unknown" chart labels and the
+    "Other (specify)" option.
+  * Kinyarwanda now covers the lock screen, the reset wizard, backup encryption and
+    the force-password dialog. THESE 102 KINYARWANDA SENTENCES ARE MY DRAFT - have a
+    Kinyarwanda speaker read them before you ship to the clinic.
+  * A wrong password/PIN now keeps slowing sign-in down (30s, 1m, 2m, 4m ... 30m)
+    and the count is stored on the device, so force-stopping the app no longer
+    resets it. A 4-digit PIN is no longer guessable in an afternoon.
+  * Password and PIN strength warnings are shown in the language the app is in.
+  * Test "nothing the user reads is hardcoded English" fails if anyone puts an
+    English sentence back into a toast, dialog, button label or field label, or
+    leaves a French/Kinyarwanda line identical to the English one.
+  * Test "a wrong credential costs more time on every try" runs the lockout code
+    itself: doubling, the 30-minute ceiling, surviving a restart, clearing on a good
+    password, and never locking anyone out over a damaged counter.
+
+D. BEFORE YOU TELL ANYONE A BUILD IS READY
+  npm test                        must say "pass 21  fail 0"
+  npx cap sync android
+  cd android && sh gradlew assembleDebug          (YOUR test phone only - see below)
+
+  Build the one you hand over as a SIGNED RELEASE:
+  1. android/keystore.properties already exists and points at Pclinic-2026.jks
+     (alias paul1). It is gitignored. BACK BOTH FILES UP OFF THIS DRIVE - if they are
+     lost, no future update can ever be installed on a phone that has the app.
+  2. versionCode is 3 / versionName 1.2. Bump it for every build you hand out.
+  3. cd android && sh gradlew assembleRelease
+     -> app/build/outputs/apk/release/app-release.apk
+  4. prove it is signed:
+       "/Users/apple/Library/Android/sdk/build-tools/36.0.0/apksigner" verify \
+         --print-certs android/app/build/outputs/apk/release/app-release.apk
+     Expected SHA-1: E2:17:F8:E5:64:34:D2:F9:3D:BE:9F:38:4F:09:FE:61:F8:CF:7D:50
+  5. Phones running the older DEBUG build must uninstall it first - a release key can
+     never update a debug-signed install. Export a .json backup inside the app before
+     uninstalling, or the vault on that phone is gone.
+
+  NEVER hand over app-debug.apk. It is built with application-debuggable (checked in the
+  current debug APK), so any laptop with adb can run `adb run-as com.nkundimana.pclinic`
+  and read the app's private files - patient records - without root. Debug is for your
+  own test phone only.
+
+E. STILL NOT DONE (needs accounts or a phone, not code)
+  * SMS recovery is switched off: the relay has to be deployed and a provider account
+    created (server/sms-relay/DEPLOY.md), then two edits in www/index.html.
+  * Google Drive needs console setup, not code - full checklist in server/drive-setup.md.
+    Short version: Drive API enabled, consent screen carrying the drive.appdata scope, and
+    an "Android" OAuth client for package com.nkundimana.pclinic with the SHA-1 of the
+    certificate that signed the APK you hand out. The release APK is signed with
+    Pclinic-2026.jks, SHA-1
+      E2:17:F8:E5:64:34:D2:F9:3D:BE:9F:38:4F:09:FE:61:F8:CF:7D:50
+    (debug-only builds use 88:E7:9D:88:37:7D:6D:45:B5:B9:CC:43:D0:00:83:01:57:31:87:06;
+    add a second Android client if you test Drive on a debug build).
+    Important: drive.appdata is a sensitive scope, so a consent screen left in "Testing"
+    makes every staff member re-approve after 7 days. Use Internal if the clinic has
+    Google Workspace; otherwise plan for the weekly re-tap or finish verification.
+    google-services.json is NOT needed to compile (android/app/build.gradle only applies
+    that plugin when the file exists) and no client ID belongs in the code.
+  * The signed release APK is built: android/app/build/outputs/apk/release/app-release.apk
+    (versionCode 3, versionName 1.2, v2 signature, not debuggable). app-debug.apk and
+    app-release-unsigned.apk on disk are older and must not be handed out.
+  * Back up Pclinic-2026.jks + android/keystore.properties somewhere safe. The old
+    Pclinic.jks cannot be used - its password is lost and cannot be recovered.
+  * EmailJS: set a daily send limit in their dashboard (the public key is in the APK).
+  * On-device check of auto-lock, backup export and restore on a real phone.
+  * One real try of the new lockout: mistype your password four times and watch the
+    wait grow and then survive closing the app. It is covered by a test, not by phone.
+  * The Kinyarwanda draft in section C.
