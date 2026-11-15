@@ -526,3 +526,14 @@ test('account server ships zero-dependency and tested', async () => {
     const tests = await read('server', 'api', 'test', 'api.test.mjs');
     assert.ok(tests.includes('encrypted blobs round-trip'), 'server contract tests exist');
 });
+
+test('auto-lock default is minutes, not days', async () => {
+    const html = await read('www', 'index.html');
+    const start = html.indexOf('function getLockMs()');
+    assert.ok(start > -1, 'getLockMs found');
+    const body = html.slice(start, start + 300);
+    assert.ok(body.includes('5 * 60 * 1000'), 'default is 5 minutes');
+    assert.ok(!body.includes('3 * 24 * 60 * 60 * 1000'), 'the 3-day default is gone');
+    // The 3-day choice stays available for users who explicitly want it.
+    assert.ok(html.includes('value="259200000"'), '3 days remains a user choice');
+});

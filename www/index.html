@@ -3430,7 +3430,7 @@
         }
         function getLockMs() {
             var v = parseInt(localStorage.getItem(lockPrefKey('_ms')) || '', 10);
-            return isNaN(v) ? 3 * 24 * 60 * 60 * 1000 : v;     // default: lock after 3 days
+            return isNaN(v) ? 5 * 60 * 1000 : v;     // default: lock after 5 minutes idle
         }
         function setLockMs(ms) { try { localStorage.setItem(lockPrefKey('_ms'), String(ms)); } catch (e) {} }
         function requireUnlockOnOpen() {
