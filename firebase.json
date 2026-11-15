@@ -54,6 +54,6 @@
         ]
       }
     ],
-    "target": "pclinic-app"
+    "site": "pclinic-app"
   }
 }
