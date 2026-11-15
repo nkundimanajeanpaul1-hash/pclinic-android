@@ -1,4 +1,4 @@
-name: Build Release APK
+name: Build APK + Deploy Web App
 
 on:
   push:
@@ -41,8 +41,22 @@ jobs:
 
       - name: Build release APK
         run: cd android && chmod +x gradlew && ./gradlew assembleRelease
+
       - name: Upload APK as artifact
         uses: actions/upload-artifact@v4
         with:
           name: PClinic-release-apk
           path: android/app/build/outputs/apk/release/app-release.apk
+
+  deploy-hosting:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Deploy web app to Firebase Hosting
+        uses: w9jds/firebase-action@master
+        with:
+          args: deploy --only hosting --project pclinic-20d81
+        env:
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
