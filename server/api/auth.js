@@ -63,6 +63,30 @@ function verifyPassword(password, record) {
     }
 }
 
+// ------------------------------------------------------- recovery codes ---
+// The app wraps each account's data key with a 100-bit recovery code, using
+// the same PBKDF2 -> HKDF derivation as passwords (see deriveAccountKeys in
+// www/index.html). The synced account record carries the code's verifier
+// (salt + hash), so the server can verify a presented code WITHOUT ever
+// knowing it — that is what makes server-side password reset safe.
+function normalizeRecoveryCode(code) {
+    return String(code || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
+}
+
+function verifyRecoveryCode(code, record) {
+    if (!record || !record.salt || !record.hash) return false;
+    try {
+        const salt = Buffer.from(record.salt, 'base64');
+        const expected = Buffer.from(record.hash, 'base64');
+        const master = crypto.pbkdf2Sync(normalizeRecoveryCode(code), salt, record.iter, 32, 'sha256');
+        const verifier = Buffer.from(crypto.hkdfSync(
+            'sha256', master, Buffer.alloc(0), Buffer.from('pclinic-verifier-v1'), 32));
+        return verifier.length === expected.length && crypto.timingSafeEqual(verifier, expected);
+    } catch (e) {
+        return false;
+    }
+}
+
 // ----------------------------------------------------------------- tokens ---
 function b64url(buf) { return Buffer.from(buf).toString('base64url'); }
 
@@ -88,4 +112,4 @@ function verifyToken(token) {
     return data.uid;
 }
 
-module.exports = { hashPassword, verifyPassword, signToken, verifyToken, TOKEN_TTL_MS };
+module.exports = { hashPassword, verifyPassword, verifyRecoveryCode, normalizeRecoveryCode, signToken, verifyToken, TOKEN_TTL_MS };

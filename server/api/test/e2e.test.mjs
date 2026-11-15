@@ -151,3 +151,39 @@ test('wrong password on device B cannot unwrap the key', async () => {
     const login = await req('POST', '/api/auth/login', { email: 'doctor@example.com', password: 'wrongpass1' });
     assert.equal(login.status, 401);
 });
+
+test('credential lifecycle: change + reset keep other devices working', async () => {
+    const email = 'lifecycle@example.com';
+    const pw1 = 'firstpass1', pw2 = 'secondpass2', pw3 = 'thirdpass3';
+
+    // Register + sync an account with a recovery verifier.
+    const reg = await req('POST', '/api/auth/register', { email, password: pw1 });
+    assert.equal(reg.status, 201);
+    let token = reg.json.token;
+
+    const code = 'KLMNO-PQRST-UVWXY-Z2345';
+    const salt = b64enc(crypto.getRandomValues(new Uint8Array(16)));
+    const iter = 50000;
+    const pwKey = await crypto.subtle.importKey('raw', enc8(code.replace(/-/g, '')), 'PBKDF2', false, ['deriveBits']);
+    const masterBits = await crypto.subtle.deriveBits({ name: 'PBKDF2', salt: b64dec(salt), iterations: iter, hash: 'SHA-256' }, pwKey, 256);
+    const base = await crypto.subtle.importKey('raw', masterBits, 'HKDF', false, ['deriveBits']);
+    const verBits = await crypto.subtle.deriveBits({ name: 'HKDF', hash: 'SHA-256', salt: new Uint8Array(0), info: enc8('pclinic-verifier-v1') }, base, 256);
+    const account = { id: 'u_lc', username: 'lc', email, recovery: { v: 2, iter, salt, hash: b64enc(new Uint8Array(verBits)) } };
+    assert.equal((await req('PUT', '/api/account', { account }, token)).status, 200);
+
+    // Device A changes password (signed-in flow).
+    assert.equal((await req('POST', '/api/auth/change-password', { currentPassword: pw1, newPassword: pw2 }, token)).status, 200);
+
+    // Device B signs in with the NEW password.
+    const loginB = await req('POST', '/api/auth/login', { email, password: pw2 });
+    assert.equal(loginB.status, 200);
+    // Old password is dead.
+    assert.equal((await req('POST', '/api/auth/login', { email, password: pw1 })).status, 401);
+
+    // Forgot password: reset with the recovery code.
+    assert.equal((await req('POST', '/api/auth/reset-password', { email, recoveryCode: code, newPassword: pw3 })).status, 200);
+
+    // Device B signs in with the reset password.
+    assert.equal((await req('POST', '/api/auth/login', { email, password: pw3 })).status, 200);
+    assert.equal((await req('POST', '/api/auth/login', { email, password: pw2 })).status, 401);
+});

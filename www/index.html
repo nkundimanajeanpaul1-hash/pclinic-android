@@ -1974,7 +1974,7 @@
                     <form id="loginForm" novalidate>
                         <div class="ios-form-group">
                             <div class="ios-input-wrap">
-                                <input type="text" class="ios-form-input" id="loginUser" placeholder="Username" data-i18n-placeholder="usernamePh" required autocomplete="off">
+                                <input type="text" class="ios-form-input" id="loginUser" placeholder="Username or e-mail" data-i18n-placeholder="usernameOrEmailPh" required autocomplete="off">
                                 <div class="ios-input-icon">
                                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
                                 </div>
@@ -4331,14 +4331,14 @@
                 u.pin = sec.pw;
                 u.dekPin = sec.dek;
                 persistUser(u);
-                return u;
+                return syncAccount(u).then(function() { return u; });
             });
         }
 
         function removeAccountPin(u) {
             try { delete u.pin; delete u.dekPin; } catch (e) {}
             persistUser(u);
-            return Promise.resolve(u);
+            return syncAccount(u).then(function() { return u; });
         }
 
         // Step-up check before a PIN is added or removed: the caller must prove they
@@ -4411,7 +4411,9 @@
             return apiLogin(u.email, password).then(function(res) {
                 if (res.ok) {
                     apiSetToken(res.token, u.email);
-                    return syncPull(u);
+                    // Pull the replica, then push the local crypto record up so
+                    // the server always holds the current wrapped keys.
+                    return syncPull(u).then(function() { return syncAccount(u); });
                 }
                 console.warn('server sync skipped:', res.error);
             });
@@ -4421,6 +4423,11 @@
         // server, download the crypto record + encrypted blobs, reconstruct
         // the account locally, and unwrap the data key with the password.
         function signInFromServer(email, password) {
+            // On a new device the account does not exist locally yet, so the
+            // server needs the e-mail identity — a username cannot find it.
+            if (String(email || '').indexOf('@') === -1) {
+                return Promise.resolve({ ok: false, error: 'On a new device, sign in with your e-mail address.' });
+            }
             return apiLogin(email, password).then(function(res) {
                 if (!res.ok) {
                     if (res._status === 401) return { ok: false, error: t('wrongPassword') };
@@ -4515,7 +4522,9 @@
                         });
                     }).then(function() {
                         persistUser(u);
-                        return { user: u, dek: dek, recoveryCode: code };
+                        return syncAccount(u).then(function() {
+                            return { user: u, dek: dek, recoveryCode: code };
+                        });
                     });
                 });
             });
@@ -4584,7 +4593,16 @@
                     u.pw = sec.pw;
                     u.dek = sec.dek;
                     persistUser(u);
-                    return { ok: true };
+                    // Keep the server in step: new password hash + crypto record,
+                    // so other devices can sign in with the new password.
+                    var serverJob = Promise.resolve();
+                    if (apiEnabled() && apiToken()) {
+                        serverJob = apiChangePassword(currentPw, newPw).then(function(res) {
+                            if (!res.ok) console.warn('server password change failed', res.error);
+                            return syncAccount(u);
+                        });
+                    }
+                    return serverJob.then(function() { return { ok: true }; });
                 });
             }).catch(function(e) {
                 console.warn('changePassword failed', e);
@@ -4719,6 +4737,7 @@
                 if (!r.ok) return { ok: false, error: 'That recovery code is not correct.' };
                 resetState.keepData = true;
                 resetState.dek = r.dek;
+                resetState.recoveryCode = code;   // proof for the server reset call
                 return { ok: true, keepsData: true };
             });
         }
@@ -4762,10 +4781,26 @@
                         return encryptJSON(sessionDEK, code).then(function(encBlob) {
                             u.recCodeEnc = encBlob;
                             persistUser(u);
-                            resetState = { user: null, otpOk: false, phoneOk: false, keepData: false, dek: null };
-                            lockedUser = null;
-                            return enterApp(u).then(function() {
-                                return { ok: true, erased: erased, recoveryCode: code };
+                            // Keep the server in step: crypto record always; the
+                            // server password too when the reset was proven with
+                            // the recovery code (the server verifies it).
+                            var serverJob = Promise.resolve();
+                            if (apiEnabled()) {
+                                serverJob = syncAccount(u).then(function() {
+                                    if (!asPin && resetState.recoveryCode) {
+                                        return apiResetPassword(u.email, resetState.recoveryCode, newSecret)
+                                            .then(function(res) {
+                                                if (!res.ok) console.warn('server password reset failed', res.error);
+                                            });
+                                    }
+                                });
+                            }
+                            return serverJob.then(function() {
+                                resetState = { user: null, otpOk: false, phoneOk: false, keepData: false, dek: null, recoveryCode: null };
+                                lockedUser = null;
+                                return enterApp(u).then(function() {
+                                    return { ok: true, erased: erased, recoveryCode: code };
+                                });
                             });
                         });
                     });
@@ -5143,6 +5178,7 @@
                 forgotPhonePh: 'Phone number on the account',
                 loginPassPh: 'Password or PIN',
                 usernamePh: 'Username',
+                usernameOrEmailPh: 'Username or e-mail',
                 helpShowAgain: 'Show this again next time? (Cancel = do not show again)',
                 quickStartHelp: 'Quick start:\n\n1) Tap + next to Patient Queue to add a patient\n2) Open a patient to add notes, diagnosis, photos\n3) Backup icon → Export or Email Backup (recommended weekly)\n4) After reinstall: Backup → Import the .json file or paste from email\n\nTip: Search works on name, ID, diagnosis, and notes.',
                 emailCodeBody: 'Your PClinic Pro password reset code is:\n\n    {n}\n\nThis code expires in 10 minutes.\nIf you did not request it, you can ignore this message.',
@@ -5530,6 +5566,7 @@
                 forgotPhonePh: 'Numéro de téléphone du compte',
                 loginPassPh: 'Mot de passe ou code PIN',
                 usernamePh: 'Nom d\'utilisateur',
+                usernameOrEmailPh: 'Nom d\'utilisateur ou e-mail',
                 helpShowAgain: 'Afficher ceci la prochaine fois ? (Annuler = ne plus afficher)',
                 quickStartHelp: 'Démarrage rapide :\n\n1) Touchez + à côté de la file des patients pour ajouter un patient\n2) Ouvrez un patient pour ajouter notes, diagnostic, photos\n3) Icône de sauvegarde → Exporter ou Envoyer par e-mail (recommandé chaque semaine)\n4) Après une réinstallation : Sauvegarde → Importer le fichier .json ou coller depuis l’e-mail\n\nAstuce : la recherche fonctionne sur le nom, l’ID, le diagnostic et les notes.',
                 emailCodeBody: 'Votre code de réinitialisation du mot de passe PClinic Pro est :\n\n    {n}\n\nCe code expire dans 10 minutes.\nSi vous ne l’avez pas demandé, ignorez ce message.',
@@ -5918,6 +5955,7 @@
                 forgotPhonePh: 'Nimero ya telefone iri kuri konti',
                 loginPassPh: 'Ijambo ry\'ibanga cyangwa PIN',
                 usernamePh: 'Izina ry\'ukoresha',
+                usernameOrEmailPh: 'Izina ry\'ukoresha cyangwa e-mail',
                 helpShowAgain: 'Erekana ibi ubutaha? (Kuneka = ntibizongera kerekanwa)',
                 quickStartHelp: 'Intangiriro yihuse:\n\n1) Kanda + hafi y\'urutonde rw\'abarwayi kugira ngo wongere umurwayi\n2) Fungura umurwayi kugira ngo wongere inyandiko, ibibazo n\'amafoto\n3) Ikimenyetso cy\'umukororombyra → Kohereza cyangwa Ohereza kuri imeyili (buri cyumweru)\n4) Nyuma yo gushyiraho kongera: Umukororombyra → Intranya dosiye ya .json cyangwa ukopeshe uvanye kuri imeyili\n\nInama: Gushakisha bikora ku izina, ID, ibibazo n\'inyandiko.',
                 emailCodeBody: 'Kode yawo yo gusubiza ijambo ry\'ibanga rya PClinic Pro ni:\n\n    {n}\n\nIyi kode irangiza mu minota 10.\nNibuta wayisabye, ushobora kuyireka.',
@@ -8071,6 +8109,15 @@
         function apiPutBlob(key, data) {
             return apiCall('PUT', '/api/data', { key: key, data: data });
         }
+        function apiChangePassword(currentPassword, newPassword) {
+            return apiCall('POST', '/api/auth/change-password', { currentPassword: currentPassword, newPassword: newPassword });
+        }
+        function apiResetPassword(email, recoveryCode, newPassword) {
+            return apiCall('POST', '/api/auth/reset-password', { email: email, recoveryCode: recoveryCode, newPassword: newPassword });
+        }
+        function apiChangeEmail(newEmail) {
+            return apiCall('POST', '/api/auth/change-email', { newEmail: newEmail });
+        }
 
         // ------------------------------------------------------------ sync engine
         // Last-write-wins per blob, tracked with updatedAt timestamps.
@@ -9641,6 +9688,7 @@
                     profileError.textContent = t('validRecoveryEmail');
                     return;
                 }
+                var prevEmail = currentUser.email || '';
                 currentUser.email = nextEmail;
                 currentUser.phone = normalizePhone(nextPhone);
 
@@ -9686,7 +9734,21 @@
                         return;
                     }
                     persistUser(currentUser);
-                    showToast(changing ? t('passwordUpdated') : 'Saved.', 'success');
+                    // Keep the server in step: crypto record always; the
+                    // sign-in e-mail too when it changed.
+                    var serverJob = syncAccount(currentUser);
+                    if (apiEnabled() && apiToken() && nextEmail && nextEmail !== prevEmail) {
+                        serverJob = serverJob.then(function() {
+                            return apiChangeEmail(nextEmail).then(function(r) {
+                                if (r.ok) apiSetToken(apiToken(), nextEmail);
+                                else console.warn('server e-mail change failed', r.error);
+                            });
+                        });
+                    }
+                    return serverJob.then(function() {
+                        showToast(changing ? t('passwordUpdated') : 'Saved.', 'success');
+                    });
+                }).then(function() {
                     profileCurrentPass.value = '';
                     profileNewPass.value = '';
                     profileConfirmPass.value = '';

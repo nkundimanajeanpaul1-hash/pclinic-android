@@ -18,6 +18,9 @@
 //   POST   /api/auth/login          {email, password} -> {token, user}
 //   GET    /api/auth/me             (Bearer) -> {user}
 //   POST   /api/auth/logout         (Bearer) -> {ok:true}
+//   POST   /api/auth/change-password (Bearer) {currentPassword, newPassword}
+//   POST   /api/auth/reset-password  {email, recoveryCode, newPassword}
+//   POST   /api/auth/change-email    (Bearer) {newEmail}
 //   GET    /api/data                (Bearer) -> {account, blobs}
 //   PUT    /api/account             (Bearer) {account} -> {ok:true}
 //   PUT    /api/data                (Bearer) {key, data} -> {ok:true, updatedAt}
@@ -42,6 +45,7 @@ const db = require('./db');
 const PORT = parseInt(process.env.PORT || '8787', 10);
 const CORS_ORIGIN = process.env.PCLINIC_CORS || '*';
 const MAX_BODY = 50 * 1024 * 1024;  // 50 MB — blobs can hold base64 photos
+const IP_LIMIT = parseInt(process.env.PCLINIC_IP_LIMIT || '10', 10);  // auth attempts / IP / min
 
 // ------------------------------------------------------------- validation ---
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -70,7 +74,7 @@ function ipAllowed(ip) {
     const hits = (ipHits.get(ip) || []).filter(t => now - t < 60 * 1000);
     hits.push(now);
     ipHits.set(ip, hits);
-    return hits.length <= 10;
+    return hits.length <= IP_LIMIT;
 }
 
 function acctLocked(email) {
@@ -207,6 +211,72 @@ async function handle(req, res) {
         // Tokens are stateless: the client discards its copy. This endpoint
         // exists so the app can confirm the server saw the sign-out.
         return send(res, 200, { ok: true });
+    }
+
+    // ------------------------------------------------------- change password ---
+    // Signed-in password change. The client proves the current password; the
+    // server re-hashes the new one. Keeps the server password in step with
+    // the on-device password so other devices can still sign in.
+    if (method === 'POST' && path === '/api/auth/change-password') {
+        const user = bearerUser(req);
+        if (!user) return send(res, 401, { ok: false, error: 'Not signed in.' });
+        const body = await readBody(req).catch(() => null);
+        if (!body) return send(res, 400, { ok: false, error: 'Invalid request body.' });
+        if (!auth.verifyPassword(String(body.currentPassword || ''), user.pw)) {
+            return send(res, 401, { ok: false, error: 'Current password is incorrect.' });
+        }
+        const problem = passwordProblem(body.newPassword);
+        if (problem) return send(res, 400, { ok: false, error: problem });
+        user.pw = auth.hashPassword(String(body.newPassword));
+        db.save();
+        return send(res, 200, { ok: true });
+    }
+
+    // ---------------------------------------------------------- reset password ---
+    // Forgot-password reset. The client proves identity with the account's
+    // recovery code (100 bits, shown once at registration/reset). The server
+    // verifies it against the synced verifier and never learns the code.
+    // Same generic error whether the account exists or the code is wrong.
+    if (method === 'POST' && path === '/api/auth/reset-password') {
+        if (!ipAllowed(clientIp(req))) return send(res, 429, { ok: false, error: 'Too many attempts. Wait a minute.' });
+        const body = await readBody(req).catch(() => null);
+        if (!body) return send(res, 400, { ok: false, error: 'Invalid request body.' });
+        const email = normalizeEmail(body.email);
+        const store = db.load();
+        const id = store.byEmail[email];
+        const user = id ? store.users[id] : null;
+        const generic = { ok: false, error: 'Incorrect e-mail or recovery code.' };
+        if (!user || !user.account || !user.account.recovery) return send(res, 401, generic);
+        if (!auth.verifyRecoveryCode(String(body.recoveryCode || ''), user.account.recovery)) {
+            return send(res, 401, generic);
+        }
+        const problem = passwordProblem(body.newPassword);
+        if (problem) return send(res, 400, { ok: false, error: problem });
+        user.pw = auth.hashPassword(String(body.newPassword));
+        db.save();
+        return send(res, 200, { ok: true });
+    }
+
+    // ------------------------------------------------------------ change email ---
+    // The e-mail is the sign-in identity, so changing it is a server-side
+    // operation (updates the lookup index). Requires a valid token.
+    if (method === 'POST' && path === '/api/auth/change-email') {
+        const user = bearerUser(req);
+        if (!user) return send(res, 401, { ok: false, error: 'Not signed in.' });
+        const body = await readBody(req).catch(() => null);
+        if (!body) return send(res, 400, { ok: false, error: 'Invalid request body.' });
+        const email = normalizeEmail(body.newEmail);
+        if (!EMAIL_RE.test(email)) return send(res, 400, { ok: false, error: 'A valid e-mail address is required.' });
+        const store = db.load();
+        const existing = store.byEmail[email];
+        if (existing && existing !== user.id) {
+            return send(res, 409, { ok: false, error: 'An account with this e-mail already exists.' });
+        }
+        delete store.byEmail[user.email];
+        user.email = email;
+        store.byEmail[email] = user.id;
+        db.save();
+        return send(res, 200, { ok: true, user: publicUser(user) });
     }
 
     // ------------------------------------------------------------- get data ---

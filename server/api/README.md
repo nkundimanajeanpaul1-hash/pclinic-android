@@ -55,11 +55,20 @@ POST   /api/auth/register       {email, password}        -> {token, user}
 POST   /api/auth/login          {email, password}        -> {token, user}
 GET    /api/auth/me             Authorization: Bearer …  -> {user}
 POST   /api/auth/logout         Authorization: Bearer …  -> {ok:true}
+POST   /api/auth/change-password Authorization: Bearer … {currentPassword, newPassword}
+POST   /api/auth/reset-password  {email, recoveryCode, newPassword}
+POST   /api/auth/change-email    Authorization: Bearer … {newEmail}
 GET    /api/data                Authorization: Bearer …  -> {account, blobs}
 PUT    /api/account             Authorization: Bearer …  {account}
 PUT    /api/data                Authorization: Bearer …  {key, data}
 DELETE /api/data/:key           Authorization: Bearer …  -> {ok:true}
 ```
+
+**Password reset** works without the old password: the client presents the
+account's recovery code (shown once at registration/reset). The server
+verifies it against the synced verifier (PBKDF2 → HKDF, same derivation the
+app uses) and never learns the code. This keeps the server password in step
+with the on-device password, so other devices keep working after a reset.
 
 Errors are `{ok:false, error:"…"}` with 400 / 401 / 409 / 429 / 500.
 Login failures never reveal whether an e-mail exists.
@@ -67,12 +76,13 @@ Login failures never reveal whether an e-mail exists.
 ## Tests
 
 ```bash
-npm test     # 14 tests: 12 API contracts + 2 end-to-end (device A -> server -> device B)
+npm test     # 18 tests: 15 API contracts + 3 end-to-end (device A -> server -> device B)
 ```
 
-The end-to-end test replicates the app's exact crypto (PBKDF2 + HKDF +
-AES-GCM) and proves a second device can sign in with e-mail + password and
-recover the same records, while the server's disk holds ciphertext only.
+The end-to-end tests replicate the app's exact crypto (PBKDF2 + HKDF +
+AES-GCM) and prove a second device can sign in with e-mail + password and
+recover the same records — including after a password change and a
+recovery-code reset — while the server's disk holds ciphertext only.
 
 ## Security notes
 

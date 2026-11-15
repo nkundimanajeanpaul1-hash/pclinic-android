@@ -537,3 +537,50 @@ test('auto-lock default is minutes, not days', async () => {
     // The 3-day choice stays available for users who explicitly want it.
     assert.ok(html.includes('value="259200000"'), '3 days remains a user choice');
 });
+
+test('credential changes keep the server replica in step', async () => {
+    const html = await read('www', 'index.html');
+    // New API client functions.
+    for (const fn of ['apiChangePassword', 'apiResetPassword', 'apiChangeEmail']) {
+        assert.ok(html.includes('function ' + fn + '('), fn + ' defined');
+    }
+    assert.ok(html.includes("'/api/auth/change-password'"), 'change-password endpoint');
+    assert.ok(html.includes("'/api/auth/reset-password'"), 'reset-password endpoint');
+    assert.ok(html.includes("'/api/auth/change-email'"), 'change-email endpoint');
+
+    // Password change: server password + crypto record both sync.
+    const chg = html.slice(html.indexOf('function changePasswordWithRewrap'), html.indexOf('function changePasswordWithRewrap') + 1600);
+    assert.ok(chg.includes('apiChangePassword(currentPw, newPw)'), 'change-password calls the server');
+    assert.ok(chg.includes('syncAccount(u)'), 'change-password syncs the crypto record');
+
+    // Reset: crypto record syncs; server password resets via recovery-code proof.
+    const rst = html.slice(html.indexOf('function completePasswordReset'), html.indexOf('function completePasswordReset') + 3200);
+    assert.ok(rst.includes('syncAccount(u)'), 'reset syncs the crypto record');
+    assert.ok(rst.includes('apiResetPassword(u.email, resetState.recoveryCode, newSecret)'), 'reset calls the server with the recovery code');
+    assert.ok(html.includes('resetState.recoveryCode = code'), 'the recovery code is kept for the server call');
+
+    // PIN set/remove and legacy migration sync the crypto record.
+    const pin = html.slice(html.indexOf('function setAccountPin'), html.indexOf('function setAccountPin') + 700);
+    assert.ok(pin.includes('syncAccount(u)'), 'PIN set syncs');
+    const rm = html.slice(html.indexOf('function removeAccountPin'), html.indexOf('function removeAccountPin') + 400);
+    assert.ok(rm.includes('syncAccount(u)'), 'PIN remove syncs');
+    const mig = html.slice(html.indexOf('function migrateAccount'), html.indexOf('function migrateAccount') + 2400);
+    assert.ok(mig.includes('syncAccount(u)'), 'migration syncs');
+
+    // Every password sign-in pushes the crypto record up after pulling.
+    const sss = html.slice(html.indexOf('function serverSyncAfterSignIn'), html.indexOf('function serverSyncAfterSignIn') + 900);
+    assert.ok(sss.includes('syncPull(u).then(function() { return syncAccount(u); })'), 'sign-in refreshes the server record');
+});
+
+test('new-device sign-in asks for an e-mail, not a username', async () => {
+    const html = await read('www', 'index.html');
+    assert.ok(html.includes('placeholder="Username or e-mail"'), 'login field says both work');
+    const start = html.indexOf('function signInFromServer(email, password)');
+    const body = html.slice(start, start + 700);
+    assert.ok(body.includes("indexOf('@') === -1"), 'non-e-mail input is rejected with guidance');
+    assert.ok(body.includes('sign in with your e-mail'), 'the guidance names the e-mail');
+    // The translation key exists in all three languages.
+    for (const lang of ['en', 'fr', 'rw']) {
+        assert.ok(html.includes('usernameOrEmailPh:'), 'usernameOrEmailPh present (' + lang + ' block)');
+    }
+});
