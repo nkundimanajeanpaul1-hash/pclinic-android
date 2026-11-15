@@ -1,0 +1,12 @@
+{
+  "projects": {
+    "default": "pclinic-20d81"
+  },
+  "targets": {
+    "hosting": {
+      "pclinic-app": [
+        "pclinic-app"
+      ]
+    }
+  }
+}
