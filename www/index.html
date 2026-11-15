@@ -3306,6 +3306,13 @@
             if (!parsed || parsed.v !== 2) return Promise.resolve(parsed);   // legacy plaintext
             return decryptJSON(sessionDEK, parsed).catch(function(e) {
                 console.warn('decrypt failed for ' + key, e);
+                // Never let an unreadable record set silently become an empty list that
+                // the next save would overwrite: flag it, tell the user, pause saving.
+                if (String(key).indexOf('pclinic_data_') === 0) {
+                    window.__decryptFailed = window.__decryptFailed || {};
+                    window.__decryptFailed[key] = true;
+                    try { showToast(t('recordsUnreadable'), 'error'); } catch (e2) {}
+                }
                 return fallback;
             });
         }
@@ -4076,6 +4083,12 @@
                                 .then(function () {
                                     if (window.mirrorSchedule) window.mirrorSchedule();
                                     if (window.driveSchedule) window.driveSchedule();
+                                    // Encrypted cloud replica (same blob format as the web path)
+                                    try {
+                                        if (typeof syncPush === 'function' && currentUser) {
+                                            syncPush(getPatientKey(), blob, currentUser.id);
+                                        }
+                                    } catch (e) { console.warn('cloud push queue failed', e); }
                                     return true;
                                 });
                         });
@@ -4508,9 +4521,20 @@
             return apiLogin(u.email, password).then(function(res) {
                 if (res.ok) {
                     apiSetToken(res.token, u.email, res.refreshToken, res.uid);
-                    // Pull the replica, then push the local crypto record up so
-                    // the server always holds the current wrapped keys.
-                    return syncPull(u).then(function() { return syncAccount(u); });
+                    // Never overwrite a DIFFERENT account that already lives in the cloud
+                    // under this e-mail (e.g. a stale local account from an earlier test):
+                    // leave the cloud untouched and tell the user.
+                    return apiGetData().then(function(d) {
+                        if (d.ok && d.account && d.account.id && d.account.id !== u.id) {
+                            console.warn('cloud account differs from the local one; sync skipped');
+                            apiClearToken();
+                            try { showToast(t('accountConflict'), 'error'); } catch (e) {}
+                            return;
+                        }
+                        // Pull the replica, then push the local crypto record up so
+                        // the server always holds the current wrapped keys.
+                        return syncPull(u).then(function() { return syncAccount(u); });
+                    });
                 }
                 console.warn('server sync skipped:', res.error);
             });
@@ -4639,8 +4663,18 @@
                     if (res.ok) { apiSetToken(res.token, emailNorm, res.refreshToken, res.uid); return; }
                     if (res._status === 409) {
                         return apiLogin(emailNorm, password).then(function(lr) {
-                            if (lr.ok) { apiSetToken(lr.token, emailNorm, lr.refreshToken, lr.uid); return; }
-                            throw new Error(lr.error || 'Could not sign in to the existing account.');
+                            if (!lr.ok) {
+                                if (lr._status === 401) throw new Error('emailExists');
+                                throw new Error(lr.error || 'Could not sign in to the existing account.');
+                            }
+                            apiSetToken(lr.token, emailNorm, lr.refreshToken, lr.uid);
+                            // A PClinic account already lives in the cloud under this e-mail.
+                            // Creating a second local account would overwrite its key record
+                            // and orphan its records: stop and send the user to Sign in.
+                            return apiGetData().then(function(d) {
+                                if (!d.ok) { apiClearToken(); throw new Error('network'); }
+                                if (d.account) { apiClearToken(); throw new Error('emailExists'); }
+                            });
                         });
                     }
                     throw new Error(res.error || 'Could not create the server account.');
@@ -5206,6 +5240,10 @@
 
                 // ---- runtime messages that used to be hardcoded English ----
                 storageFull: 'Storage full — export a backup and free space. New data may not persist.',
+                emailAlreadyRegistered: 'This e-mail already has a PClinic account. Tap "Sign in" and use the same e-mail and password. Creating it again would overwrite your cloud records.',
+                accountConflict: 'This device holds a different account for this e-mail. Your cloud records were left untouched. Clear this site\u2019s data in the browser, then sign in again.',
+                saveFailedNotice: 'This change could not be saved on this device. Please sign in again and retry.',
+                recordsUnreadable: 'Saved records on this device could not be read. Saving is paused so nothing is overwritten. Sign out and sign in again, or restore a backup.',
                 recordsInVault: 'Your records now live in the on-device vault',
                 oldRecordsCleared: 'Old records could not be decrypted and were cleared.',
                 needUsernameFirst: 'Enter your username first.',
@@ -5594,6 +5632,10 @@
 
                 // ---- runtime messages that used to be hardcoded English ----
                 storageFull: 'Stockage plein — exportez une sauvegarde et libérez de l’espace. Les nouvelles données risquent de ne pas être conservées.',
+                emailAlreadyRegistered: 'Cet e-mail a déjà un compte PClinic. Touchez « Se connecter » avec le même e-mail et le même mot de passe. Le recréer écraserait vos données dans le cloud.',
+                accountConflict: 'Cet appareil contient un autre compte pour cet e-mail. Vos données cloud n’ont pas été modifiées. Effacez les données de ce site dans le navigateur, puis reconnectez-vous.',
+                saveFailedNotice: 'Cette modification n’a pas pu être enregistrée sur cet appareil. Reconnectez-vous et réessayez.',
+                recordsUnreadable: 'Les dossiers enregistrés sur cet appareil sont illisibles. L’enregistrement est suspendu pour ne rien écraser. Déconnectez-vous puis reconnectez-vous, ou restaurez une sauvegarde.',
                 recordsInVault: 'Vos dossiers sont maintenant dans le coffre de l’appareil',
                 oldRecordsCleared: 'Les anciens dossiers n’ont pas pu être déchiffrés et ont été effacés.',
                 needUsernameFirst: 'Saisissez d’abord votre nom d’utilisateur.',
@@ -5983,6 +6025,10 @@
 
                 // ---- runtime messages that used to be hardcoded English ----
                 storageFull: 'Ububiko bwuzuye — korana dosiye y’umukororombyra wandikwe maze urekure umwanya. Amakuru mashya ashobora kutabikwa.',
+                emailAlreadyRegistered: 'This e-mail already has a PClinic account. Tap "Sign in" and use the same e-mail and password. Creating it again would overwrite your cloud records.',
+                accountConflict: 'This device holds a different account for this e-mail. Your cloud records were left untouched. Clear this site\u2019s data in the browser, then sign in again.',
+                saveFailedNotice: 'This change could not be saved on this device. Please sign in again and retry.',
+                recordsUnreadable: 'Saved records on this device could not be read. Saving is paused so nothing is overwritten. Sign out and sign in again, or restore a backup.',
                 recordsInVault: 'Amadosiye yawo ubu ari mu karongo k’iyi telefone',
                 oldRecordsCleared: 'Amadosiye ya kera ntiyashoboye gusomwa bityo iriswa.',
                 needUsernameFirst: 'Mbanze wandikize izina ry’ukoresha.',
@@ -6466,12 +6512,61 @@
         }
 
         function savePatients() {
+            var pk = getPatientKey();
+            if (window.__decryptFailed && window.__decryptFailed[pk]) {
+                showToast(t('recordsUnreadable'), 'error');
+                return false;
+            }
             if (window.__vaultMode === 'fs') {
-                Vault.schedule(patients);          // debounced vault write + mirror + Drive
+                Vault.schedule(patients);          // debounced vault write + mirror + Drive + cloud
             } else {
-                secureSet(getPatientKey(), patients);  // web preview / pre-migration fallback
+                secureSet(pk, patients).then(function (ok) {   // web / pre-migration fallback
+                    if (!ok) showToast(t('saveFailedNotice'), 'error');
+                });
             }
             return true;
+        }
+
+        // Android vault mode: keep the cloud replica in step with the vault.
+        // Older builds never uploaded patients, so the web saw an empty list.
+        // Pull the cloud list, merge by patient id (newest edit wins), then push
+        // the merged list. Never pushes an empty list over cloud data.
+        function syncVaultWithCloud() {
+            if (window.__vaultMode !== 'fs' || !sessionDEK || !currentUser || !apiEnabled() || !apiToken()) {
+                return Promise.resolve(false);
+            }
+            var key = getPatientKey(), dek = sessionDEK, uid = currentUser.id;
+            return apiGetData().then(function (res) {
+                if (!res || !res.ok) return false;            // offline / denied: retry next time
+                var remote = res.blobs && res.blobs[key] ? res.blobs[key].data : null;
+                var readRemote = remote ? decryptJSON(dek, remote).catch(function () { return undefined; })
+                                        : Promise.resolve(null);
+                return readRemote.then(function (cloudList) {
+                    if (cloudList === undefined) {                 // cloud copy exists but our key cannot read it
+                        console.warn('cloud patient list is unreadable with this key; push skipped');
+                        try { showToast(t('accountConflict'), 'error'); } catch (e) {}
+                        return false;
+                    }
+                    if (!currentUser || currentUser.id !== uid) return false;   // user changed meanwhile
+                    var changed = false;
+                    if (Array.isArray(cloudList)) {
+                        var byId = {};
+                        patients.forEach(function (p) { byId[p.id] = p; });
+                        cloudList.forEach(function (c) {
+                            if (!c || c.id === undefined || c.id === null) return;
+                            var l = byId[c.id];
+                            if (!l) { patients.push(c); changed = true; }
+                            else if (String(c.updatedAt || '') > String(l.updatedAt || '')) {
+                                patients[patients.indexOf(l)] = c; changed = true;
+                            }
+                        });
+                    }
+                    if (changed) { try { renderQueue(); } catch (e) {} }
+                    if (!patients.length) return false;
+                    Vault.schedule(patients);                    // vault + mirror + Drive + cloud push
+                    return true;
+                });
+            }).catch(function (e) { console.warn('vault cloud sync failed', e); return false; });
         }
 
         function addPatient(data) {
@@ -6884,6 +6979,7 @@
 
         function enterApp(user) {
             resetUserState();          // clear previous user's data from memory AND screen
+            window.__decryptFailed = {};
             hideLockScreen();
             currentUser = user;
             // First run for this account: make sure the privacy notice has been seen.
@@ -6920,6 +7016,7 @@
                         driveSyncMedia().catch(function (e) { console.warn('drive media sync failed', e); });
                     }
                     setTimeout(showFirstTimeHelp, 1200);
+                    setTimeout(function () { syncVaultWithCloud(); }, 1500);
                     lastActivityAt = Date.now();
                     refreshProfileSecurity();
                     return true;
@@ -9631,7 +9728,8 @@
                     });
                 }).catch(function(err) {
                     console.warn(err);
-                    regError.textContent = t('accountCreateFailed').replace('{n}', describeError(err));
+                    if (err && err.message === 'emailExists') regError.textContent = t('emailAlreadyRegistered');
+                    else regError.textContent = t('accountCreateFailed').replace('{n}', describeError(err));
                 });
             });
 
