@@ -57,6 +57,6 @@ jobs:
       - name: Deploy web app to Firebase Hosting (pclinic-app site only)
         uses: w9jds/firebase-action@master
         with:
-          args: deploy --only hosting:pclinic-app --project pclinic-20d81
+          args: deploy --only hosting --project pclinic-20d81
         env:
           GCP_SA_KEY: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
