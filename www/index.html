@@ -3269,6 +3269,11 @@
                 return encryptJSON(dek, obj).then(function(blob) {
                     try {
                         localStorage.setItem(key, JSON.stringify(blob));
+                        // Encrypted-sync replica: push the ciphertext to the
+                        // account server (no-op in local-only mode / offline).
+                        if (typeof syncPush === 'function' && currentUser) {
+                            syncPush(key, blob, currentUser.id);
+                        }
                         return true;
                     } catch (e) {
                         showToast(t('storageFull'), 'error');
@@ -4370,10 +4375,8 @@
 
         // ------------------------------------------------------------------- sign in
         // Returns {ok, user} or {ok:false, error}. Upgrades legacy accounts on the fly.
-        function signIn(username, password) {
-            var u = findUser(username);
-            if (!u) return Promise.resolve({ ok: false, error: t('accountNotFound') });
-
+        // Local sign-in only (original behaviour). Returns {ok, user, viaPin?}.
+        function signInLocal(u, password) {
             if (u.pw && u.pw.v === 2) {
                 return deriveAccountKeys(password, u.pw.salt, u.pw.iter).then(function(k) {
                     if (!safeEq(k.verifier, u.pw.hash)) return signInWithPin(u, password);
@@ -4394,6 +4397,96 @@
                 sessionDEK = res.dek;
                 return { ok: true, user: res.user, migrated: true, recoveryCode: res.recoveryCode };
             });
+        }
+
+        // After a local sign-in, authenticate with the server and pull the
+        // encrypted replica. Offline or server-down: local sign-in stands.
+        function serverSyncAfterSignIn(u, password, viaPin) {
+            if (!apiEnabled()) return Promise.resolve();
+            if (viaPin) {
+                // PIN sign-in: the server needs the password, which we don't
+                // have — reuse the stored token if a previous sign-in left one.
+                return apiToken() ? syncPull(u) : Promise.resolve();
+            }
+            return apiLogin(u.email, password).then(function(res) {
+                if (res.ok) {
+                    apiSetToken(res.token, u.email);
+                    return syncPull(u);
+                }
+                console.warn('server sync skipped:', res.error);
+            });
+        }
+
+        // New-device sign-in: no local account yet. Authenticate with the
+        // server, download the crypto record + encrypted blobs, reconstruct
+        // the account locally, and unwrap the data key with the password.
+        function signInFromServer(email, password) {
+            return apiLogin(email, password).then(function(res) {
+                if (!res.ok) {
+                    if (res._status === 401) return { ok: false, error: t('wrongPassword') };
+                    if (res._status === 0) return { ok: false, error: t('signInFailed').replace('{n}', 'network') };
+                    return { ok: false, error: res.error || t('signInFailed').replace('{n}', '') };
+                }
+                apiSetToken(res.token, email);
+                return apiGetData().then(function(data) {
+                    if (!data.ok || !data.account) {
+                        apiClearToken();
+                        return { ok: false, error: t('accountNotFound') };
+                    }
+                    var rec = data.account;
+                    var user = {
+                        id: rec.id, username: rec.username, email: rec.email,
+                        phone: rec.phone || '', createdAt: rec.createdAt,
+                        pw: rec.pw, dek: rec.dek, dekRec: rec.dekRec,
+                        recovery: rec.recovery, recCodeEnc: rec.recCodeEnc,
+                        pin: rec.pin, dekPin: rec.dekPin
+                    };
+                    if (!user.pw || user.pw.v !== 2) {
+                        apiClearToken();
+                        return { ok: false, error: t('accountNotFound') };
+                    }
+                    return deriveAccountKeys(password, user.pw.salt, user.pw.iter).then(function(k) {
+                        if (!safeEq(k.verifier, user.pw.hash)) {
+                            apiClearToken();
+                            return { ok: false, error: t('wrongPassword') };
+                        }
+                        return unwrapDEK(k.kek, user.dek).then(function(dek) {
+                            sessionDEK = dek;
+                            // Persist the account + encrypted blobs on this device.
+                            var users = loadUsers().filter(function(x) { return x.id !== user.id; });
+                            users.push(user);
+                            saveUsers(users);
+                            var times = {};
+                            Object.keys(data.blobs || {}).forEach(function(key) {
+                                try { localStorage.setItem(key, JSON.stringify(data.blobs[key].data)); } catch (e) {}
+                                times[key] = data.blobs[key].updatedAt;
+                            });
+                            saveSyncTimes(user.id, times);
+                            return { ok: true, user: user, fromServer: true };
+                        });
+                    });
+                });
+            }).catch(function(e) {
+                console.warn('signInFromServer failed', e);
+                return { ok: false, error: t('signInFailed').replace('{n}', describeError(e)) };
+            });
+        }
+
+        // Sign-in entry point. The login field accepts a username OR an
+        // e-mail. Local accounts sign in locally first (works offline);
+        // unknown accounts fall through to the server (new device).
+        function signIn(username, password) {
+            var u = findUser(username) || findUserByEmail(username);
+            if (u) {
+                return signInLocal(u, password).then(function(res) {
+                    if (!res.ok) return res;
+                    return serverSyncAfterSignIn(u, password, res.viaPin).then(function() {
+                        return res;
+                    });
+                });
+            }
+            if (apiEnabled()) return signInFromServer(username, password);
+            return Promise.resolve({ ok: false, error: t('accountNotFound') });
         }
 
         // ------------------------------------------- one-time migration to encryption
@@ -4430,24 +4523,52 @@
 
         // ------------------------------------------------------------------ register
         function registerAccount(username, password, email, phone) {
-            var u = createUser(username, password, '');      // id / username / createdAt
-            u.email = String(email || '').trim();
-            u.phone = normalizePhone(phone);
-            return generateDEK().then(function(dek) {
-                sessionDEK = dek;
-                var code = generateRecoveryCode();
-                return wrapDEKWithPassword(password, dek).then(function(sec) {
-                    u.pw = sec.pw;
-                    u.dek = sec.dek;
-                    return attachRecoveryCode(u, code).then(function() {
-                        return encryptJSON(sessionDEK, code).then(function(encBlob) {
-                            u.recCodeEnc = encBlob;
-                            persistUser(u);
-                            return secureSet('pclinic_data_' + u.id, []).then(function() {
-                                return { user: u, recoveryCode: code };
+            var emailNorm = String(email || '').trim();
+            // Server account first (when enabled): the e-mail becomes the
+            // sign-in identity, Facebook-style. A 409 means the account
+            // already exists — sign in to link this device instead.
+            var serverStep = Promise.resolve();
+            if (apiEnabled()) {
+                serverStep = apiRegister(emailNorm, password).then(function(res) {
+                    if (res.ok) { apiSetToken(res.token, emailNorm); return; }
+                    if (res._status === 409) {
+                        return apiLogin(emailNorm, password).then(function(lr) {
+                            if (lr.ok) { apiSetToken(lr.token, emailNorm); return; }
+                            throw new Error(lr.error || 'Could not sign in to the existing account.');
+                        });
+                    }
+                    throw new Error(res.error || 'Could not create the server account.');
+                });
+            }
+            return serverStep.then(function() {
+                var u = createUser(username, password, '');      // id / username / createdAt
+                u.email = emailNorm;
+                u.phone = normalizePhone(phone);
+                return generateDEK().then(function(dek) {
+                    sessionDEK = dek;
+                    var code = generateRecoveryCode();
+                    return wrapDEKWithPassword(password, dek).then(function(sec) {
+                        u.pw = sec.pw;
+                        u.dek = sec.dek;
+                        return attachRecoveryCode(u, code).then(function() {
+                            return encryptJSON(sessionDEK, code).then(function(encBlob) {
+                                u.recCodeEnc = encBlob;
+                                persistUser(u);
+                                return secureSet('pclinic_data_' + u.id, []).then(function() {
+                                    return { user: u, recoveryCode: code };
+                                });
                             });
                         });
                     });
+                }).then(function(res) {
+                    // Sync the crypto record + initial stores so this account
+                    // is available on other devices right away.
+                    if (apiEnabled() && res.user) {
+                        return syncAccount(res.user).then(function() {
+                            return syncPushAll(res.user);
+                        }).then(function() { return res; });
+                    }
+                    return res;
                 });
             });
         }
@@ -6150,6 +6271,13 @@
             return users.find(function(u) { return u.username.toLowerCase() === uname; }) || null;
         }
 
+        function findUserByEmail(email) {
+            var users = loadUsers();
+            var em = String(email || '').toLowerCase().trim();
+            if (!em) return null;
+            return users.find(function(u) { return String(u.email || '').toLowerCase() === em; }) || null;
+        }
+
         function findUserById(id) {
             var users = loadUsers();
             return users.find(function(u) { return u.id === id; }) || null;
@@ -6673,6 +6801,11 @@
             patients = [];
             hideLockScreen();
             clearSession();
+            // Server session ends too (best effort — tokens are stateless).
+            if (typeof apiLogout === 'function' && apiEnabled()) {
+                apiLogout().catch(function() {});
+            }
+            apiClearToken();
             fabBtn.style.display = 'none';
             loginForm.reset();
             registerForm.reset();
@@ -7845,6 +7978,19 @@
         // ============================================================================
         var SMS_RELAY_URL = '';
 
+        // ============================================================================
+        //  CONFIGURATION — account server (Facebook-style sign-in + encrypted sync)
+        //  Point this at the server in server/api (e.g. 'https://pclinic.example.com').
+        //  With it set, users sign in with e-mail + password and their ENCRYPTED
+        //  records sync to the server, so the same account works on any device.
+        //  The server only ever stores ciphertext — patient data stays encrypted
+        //  on-device with the password-derived key (see server/api/README.md).
+        //  Leave it as '' for local-only mode (accounts live on this device only).
+        //  IMPORTANT: also add this origin to connect-src in the CSP meta tag at
+        //  the top of this file, or the browser will block the calls to it.
+        // ============================================================================
+        var API_URL = '';
+
         var emailjsReady = false;
 
         function initEmailJS() {
@@ -7860,6 +8006,190 @@
                 }
             } catch (e) { console.warn('EmailJS init failed', e); }
         }
+
+        // ============================================================================
+        //  ACCOUNT SERVER CLIENT + ENCRYPTED SYNC
+        //  When API_URL is set, sign-in goes through the server (server/api) and
+        //  the user's ENCRYPTED records sync to it, so one account works on any
+        //  device. The server stores only ciphertext + wrapped keys; the data
+        //  key is derived from the password on-device and never leaves it.
+        //  The local vault stays the working copy (offline-first); the server
+        //  is a replica that syncs when connectivity allows.
+        // ============================================================================
+        var API_TOKEN_KEY = 'pclinic_api_token';
+        var API_EMAIL_KEY = 'pclinic_api_email';
+        var SYNC_QUEUE_KEY = 'pclinic_sync_queue';
+        var SYNC_TIMES_KEY = 'pclinic_sync_times_';   // + userId
+
+        function apiEnabled() { return !!API_URL; }
+
+        function apiToken() {
+            try { return localStorage.getItem(API_TOKEN_KEY) || ''; } catch (e) { return ''; }
+        }
+        function apiSetToken(token, email) {
+            try {
+                if (token) localStorage.setItem(API_TOKEN_KEY, token);
+                else localStorage.removeItem(API_TOKEN_KEY);
+                if (email) localStorage.setItem(API_EMAIL_KEY, email);
+            } catch (e) {}
+        }
+        function apiClearToken() {
+            try { localStorage.removeItem(API_TOKEN_KEY); } catch (e) {}
+        }
+
+        function apiCall(method, path, body) {
+            if (!API_URL) return Promise.resolve({ ok: false, error: 'apiDisabled', _status: 0 });
+            var opts = { method: method, headers: { 'Content-Type': 'application/json' } };
+            var tok = apiToken();
+            if (tok) opts.headers['Authorization'] = 'Bearer ' + tok;
+            if (body) opts.body = JSON.stringify(body);
+            return fetch(API_URL + path, opts).then(function(res) {
+                return res.json().catch(function() { return { ok: false, error: 'badResponse' }; }).then(function(json) {
+                    json._status = res.status;
+                    return json;
+                });
+            }).catch(function() {
+                return { ok: false, error: 'network', _status: 0 };
+            });
+        }
+
+        function apiRegister(email, password) {
+            return apiCall('POST', '/api/auth/register', { email: email, password: password });
+        }
+        function apiLogin(email, password) {
+            return apiCall('POST', '/api/auth/login', { email: email, password: password });
+        }
+        function apiLogout() {
+            return apiCall('POST', '/api/auth/logout', {});
+        }
+        function apiGetData() {
+            return apiCall('GET', '/api/data');
+        }
+        function apiPutAccount(account) {
+            return apiCall('PUT', '/api/account', { account: account });
+        }
+        function apiPutBlob(key, data) {
+            return apiCall('PUT', '/api/data', { key: key, data: data });
+        }
+
+        // ------------------------------------------------------------ sync engine
+        // Last-write-wins per blob, tracked with updatedAt timestamps.
+        function syncTimesKey(userId) { return SYNC_TIMES_KEY + userId; }
+        function loadSyncTimes(userId) {
+            try { return JSON.parse(localStorage.getItem(syncTimesKey(userId)) || '{}'); }
+            catch (e) { return {}; }
+        }
+        function saveSyncTimes(userId, times) {
+            try { localStorage.setItem(syncTimesKey(userId), JSON.stringify(times)); } catch (e) {}
+        }
+        function loadSyncQueue() {
+            try { return JSON.parse(localStorage.getItem(SYNC_QUEUE_KEY) || '[]'); }
+            catch (e) { return []; }
+        }
+        function saveSyncQueue(q) {
+            try { localStorage.setItem(SYNC_QUEUE_KEY, JSON.stringify(q)); } catch (e) {}
+        }
+
+        // Push one encrypted blob to the server. Offline/failure -> queued.
+        var syncTimers = {};
+        function syncPush(key, blob, userId) {
+            if (!apiEnabled() || !apiToken() || !userId) return;
+            if (syncTimers[key]) clearTimeout(syncTimers[key]);
+            syncTimers[key] = setTimeout(function() {
+                syncTimers[key] = null;
+                apiPutBlob(key, blob).then(function(res) {
+                    if (res.ok) {
+                        var times = loadSyncTimes(userId);
+                        times[key] = res.updatedAt || new Date().toISOString();
+                        saveSyncTimes(userId, times);
+                    } else {
+                        var q = loadSyncQueue().filter(function(item) {
+                            return !(item.key === key && item.userId === userId);
+                        });
+                        q.push({ key: key, data: blob, userId: userId, at: Date.now() });
+                        saveSyncQueue(q);
+                    }
+                });
+            }, 800);
+        }
+
+        // Flush queued pushes (on 'online' and after sign-in).
+        function flushSyncQueue() {
+            if (!apiEnabled() || !apiToken()) return Promise.resolve();
+            var q = loadSyncQueue();
+            if (!q.length) return Promise.resolve();
+            var chain = Promise.resolve();
+            q.forEach(function(item) {
+                chain = chain.then(function() {
+                    return apiPutBlob(item.key, item.data).then(function(res) {
+                        if (res.ok) {
+                            var times = loadSyncTimes(item.userId);
+                            times[item.key] = res.updatedAt || new Date().toISOString();
+                            saveSyncTimes(item.userId, times);
+                            saveSyncQueue(loadSyncQueue().filter(function(x) { return x !== item; }));
+                        }
+                    });
+                });
+            });
+            return chain;
+        }
+
+        // Pull server blobs; merge last-write-wins against local sync times.
+        function syncPull(user) {
+            if (!apiEnabled() || !apiToken() || !user) return Promise.resolve();
+            return apiGetData().then(function(res) {
+                if (!res.ok || !res.blobs) return;
+                var times = loadSyncTimes(user.id);
+                Object.keys(res.blobs).forEach(function(key) {
+                    var remote = res.blobs[key];
+                    var localAt = times[key] || '';
+                    var remoteAt = remote.updatedAt || '';
+                    if (!localAt || remoteAt > localAt) {
+                        // Server copy is newer (or local has none): take it.
+                        try { localStorage.setItem(key, JSON.stringify(remote.data)); } catch (e) {}
+                        times[key] = remoteAt;
+                    } else if (localAt > remoteAt) {
+                        // Local copy is newer: push it up.
+                        var raw = null;
+                        try { raw = localStorage.getItem(key); } catch (e) {}
+                        if (raw) { try { syncPush(key, JSON.parse(raw), user.id); } catch (e) {} }
+                    }
+                    // Equal timestamps: already in sync, do nothing.
+                });
+                saveSyncTimes(user.id, times);
+                return flushSyncQueue();
+            }).catch(function(e) { console.warn('syncPull failed', e); });
+        }
+
+        // Push the account crypto record (wrapped keys, verifiers) so a new
+        // device can reconstruct this account after sign-in. All ciphertext.
+        function syncAccount(user) {
+            if (!apiEnabled() || !apiToken() || !user) return Promise.resolve();
+            var record = {
+                id: user.id, username: user.username, email: user.email, phone: user.phone,
+                createdAt: user.createdAt,
+                pw: user.pw, dek: user.dek, dekRec: user.dekRec, recovery: user.recovery,
+                recCodeEnc: user.recCodeEnc, pin: user.pin, dekPin: user.dekPin
+            };
+            return apiPutAccount(record).then(function(res) {
+                if (!res.ok) console.warn('syncAccount failed', res.error);
+            });
+        }
+
+        // Push every local store for this user (used right after registration).
+        function syncPushAll(user) {
+            if (!apiEnabled() || !apiToken() || !user) return Promise.resolve();
+            var keys = ['pclinic_data_' + user.id, 'pclinic_activity_' + user.id, 'pclinic_catalog_' + user.id];
+            keys.forEach(function(key) {
+                var raw = null;
+                try { raw = localStorage.getItem(key); } catch (e) {}
+                if (raw) { try { syncPush(key, JSON.parse(raw), user.id); } catch (e) {} }
+            });
+            return flushSyncQueue();
+        }
+
+        // Retry queued pushes whenever connectivity returns.
+        window.addEventListener('online', function() { flushSyncQueue(); });
 
         function getSavedBackupEmail() {
             try { return localStorage.getItem('pclinic_backup_email_' + (currentUser ? currentUser.id : '')) || ''; }

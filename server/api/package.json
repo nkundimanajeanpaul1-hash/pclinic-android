@@ -1,0 +1,14 @@
+{
+  "name": "pclinic-api",
+  "version": "1.0.0",
+  "description": "PClinic Pro account + encrypted-sync server. Pure Node.js, zero dependencies. Stores accounts and end-to-end-encrypted blobs only — it never sees patient data.",
+  "private": true,
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "test": "node --test test/api.test.mjs test/e2e.test.mjs"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

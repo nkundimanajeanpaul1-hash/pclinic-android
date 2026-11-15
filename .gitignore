@@ -10,6 +10,11 @@ android/app/*.keystore.jks
 # Function environment — holds SMS_PROVIDER / sender names, never commit
 .env
 
+# Account server runtime state — the signing secret and the database itself
+server/api/.secret
+server/api/data.json
+server/api/data.json.bak
+
 # IDE / OS junk
 .idea/
 .DS_Store

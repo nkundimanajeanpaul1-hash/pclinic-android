@@ -10,11 +10,33 @@ Android app via Capacitor 8.
 www/                  single-page app (index.html + vendor/capacitor-filesystem.js,
                       vendor/email.min.js, vendor/capacitor-filesystem.js)
 android/              native Android project (signing is properties-gated)
+server/api/           account + encrypted-sync server (pure Node, zero deps)
+server/sms-relay/     SMS relay for password-recovery codes (Firebase Function)
 resources/            icon source for Play assets
 tests/                smoke contracts (node --test)
 capacitor.config.json app id, webDir, https scheme, splash/statusbar
 android/keystore.properties.example  → copy to keystore.properties to sign
 ```
+
+## Accounts — Facebook-style sign-in (any device)
+
+With `API_URL` set in `www/index.html` (see `server/api/README.md`), users
+register and sign in with **e-mail + password** against the account server
+(`server/api/`, pure Node, zero dependencies — `node index.js` runs it).
+The server holds the account and a replica of the user's **encrypted**
+records, so the same account works on any device: sign in on a new phone and
+your records download and decrypt locally.
+
+The encryption model is unchanged and end-to-end: the data key is derived
+from the password **on the device** (PBKDF2 → HKDF → AES-GCM) and never
+leaves it. The server stores only ciphertext + wrapped keys — it cannot read
+a patient record. The local vault stays the working copy, so the app keeps
+working offline; sync pushes/pulls happen when connectivity allows
+(last-write-wins per record, queued while offline).
+
+With `API_URL = ''` (default) the app is local-only: accounts live on the
+device, exactly as before. The login field accepts a username **or** an
+e-mail; unknown accounts fall through to the server (new-device sign-in).
 
 ## Bootstrap (first build)
 

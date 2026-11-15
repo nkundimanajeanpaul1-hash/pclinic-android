@@ -134,8 +134,8 @@ test('a PIN signs in exactly like a password', async () => {
     assert.ok(html.includes('function signInWithPin(u, pin)'), 'PIN sign-in path exists');
     assert.ok(html.includes('function hasPin(u)'), 'PIN presence check');
 
-    const start = html.indexOf('function signIn(username');
-    assert.ok(start > -1, 'signIn found');
+    const start = html.indexOf('function signInLocal(u, password)');
+    assert.ok(start > -1, 'signInLocal found');
     const body = html.slice(start, start + 1400);
     // A credential that is not the password verifier is retried as a PIN rather
     // than rejected, and a PIN-only account must still be able to get in.
@@ -447,4 +447,82 @@ test('a wrong credential costs more time on every try, and the cost survives a r
         for (let i = 0; i < 4; i++) a.fail();
         assert.match(a.msg(), re, lang + ' explains the wait in its own words');
     }
+});
+
+test('account server config exists and defaults to local-only', async () => {
+    const html = await read('www', 'index.html');
+    assert.ok(html.includes("var API_URL = '';"), 'API_URL defaults to local-only mode');
+    assert.ok(html.includes('server/api'), 'config points at the bundled server');
+    assert.ok(html.includes('connect-src'), 'CSP reminder documented next to API_URL');
+});
+
+test('API client speaks to the account server with a bearer token', async () => {
+    const html = await read('www', 'index.html');
+    assert.ok(html.includes('function apiCall(method, path, body)'), 'apiCall defined');
+    assert.ok(html.includes("'Bearer ' + tok"), 'bearer token attached');
+    assert.ok(html.includes("'/api/auth/register'"), 'register endpoint');
+    assert.ok(html.includes("'/api/auth/login'"), 'login endpoint');
+    assert.ok(html.includes("'/api/data'"), 'data endpoints');
+    assert.ok(html.includes("'/api/account'"), 'account record endpoint');
+    assert.ok(html.includes('pclinic_api_token'), 'token persisted');
+});
+
+test('every encrypted save is pushed to the server replica', async () => {
+    const html = await read('www', 'index.html');
+    const start = html.indexOf('function secureSet(key, obj)');
+    assert.ok(start > -1, 'secureSet found');
+    const body = html.slice(start, start + 1600);
+    assert.ok(body.includes('syncPush(key, blob, currentUser.id)'), 'secureSet pushes the ciphertext');
+    assert.ok(html.includes('function syncPush(key, blob, userId)'), 'syncPush defined');
+    assert.ok(html.includes('function syncPull(user)'), 'syncPull defined');
+    assert.ok(html.includes('function flushSyncQueue()'), 'offline queue flush defined');
+    assert.ok(html.includes("addEventListener('online'"), 'queue flushes when connectivity returns');
+});
+
+test('sign-in is local-first with a server fallthrough for new devices', async () => {
+    const html = await read('www', 'index.html');
+    assert.ok(html.includes('function signInLocal(u, password)'), 'local sign-in preserved');
+    assert.ok(html.includes('function signInFromServer(email, password)'), 'new-device server sign-in');
+    assert.ok(html.includes('function serverSyncAfterSignIn(u, password, viaPin)'), 'post-sign-in sync');
+    assert.ok(html.includes('findUserByEmail(username)'), 'login accepts an e-mail');
+    // New-device flow must unwrap the data key from the synced crypto record.
+    const start = html.indexOf('function signInFromServer(email, password)');
+    const body = html.slice(start, start + 2600);
+    assert.ok(body.includes('deriveAccountKeys(password, user.pw.salt, user.pw.iter)'), 'DEK derived on the new device');
+    assert.ok(body.includes('unwrapDEK(k.kek, user.dek)'), 'wrapped DEK unwrapped');
+    assert.ok(body.includes('saveUsers(users)'), 'account reconstructed locally');
+});
+
+test('registration creates the server account before the local one', async () => {
+    const html = await read('www', 'index.html');
+    const start = html.indexOf('function registerAccount(username, password, email, phone)');
+    assert.ok(start > -1, 'registerAccount found');
+    const body = html.slice(start, start + 3200);
+    assert.ok(body.includes('apiRegister(emailNorm, password)'), 'server account created first');
+    assert.ok(body.includes('apiSetToken(res.token, emailNorm)'), 'token stored');
+    assert.ok(body.includes('syncAccount(res.user)'), 'crypto record synced');
+    assert.ok(body.includes('syncPushAll(res.user)'), 'initial stores synced');
+});
+
+test('logout ends the server session too', async () => {
+    const html = await read('www', 'index.html');
+    const start = html.indexOf('function logout()');
+    const body = html.slice(start, start + 900);
+    assert.ok(body.includes('apiLogout()'), 'server notified');
+    assert.ok(body.includes('apiClearToken()'), 'token discarded');
+});
+
+test('account server ships zero-dependency and tested', async () => {
+    const pkg = JSON.parse(await read('server', 'api', 'package.json'));
+    assert.deepEqual(pkg.dependencies || {}, {}, 'no runtime dependencies');
+    assert.ok(pkg.scripts.start.includes('node index.js'), 'node index.js runs it');
+    const server = await read('server', 'api', 'index.js');
+    assert.ok(server.includes("'/api/auth/register'"), 'register route');
+    assert.ok(server.includes("'/api/auth/login'"), 'login route');
+    assert.ok(server.includes("'/api/data'"), 'blob routes');
+    const auth = await read('server', 'api', 'auth.js');
+    assert.ok(auth.includes('scryptSync'), 'scrypt password hashing');
+    assert.ok(auth.includes('timingSafeEqual'), 'constant-time compare');
+    const tests = await read('server', 'api', 'test', 'api.test.mjs');
+    assert.ok(tests.includes('encrypted blobs round-trip'), 'server contract tests exist');
 });
