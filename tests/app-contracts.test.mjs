@@ -105,11 +105,17 @@ test('native plugins registered and dependency-present', async () => {
     assert.ok(gradle.includes('documentfile'), 'SAF documentfile dependency');
 });
 
-test('drive plugin targets hidden appDataFolder only', async () => {
+test('drive plugin uses least-privilege scopes only', async () => {
     const java = await read('android', 'app', 'src', 'main', 'java', 'com', 'nkundimana', 'pclinic', 'GoogleDrivePlugin.java');
-    assert.ok(java.includes('drive.appdata'), 'appdata scope');
+    assert.ok(java.includes('drive.appdata'), 'appdata scope (vault snapshots)');
     assert.ok(java.includes('appDataFolder'), 'appDataFolder parent');
-    assert.ok(!/auth\/drive(?!\.appdata)/.test(java) && !java.includes('drive.file'), 'no broad drive scopes');
+    assert.ok(java.includes('drive.file'), 'drive.file scope (visible media folder)');
+    assert.ok(java.includes('PClinic Media'), 'visible media folder');
+    // No full-drive access: only appdata + file (files this app creates).
+    assert.ok(!/auth\/drive(?!\.appdata|\.file)/.test(java), 'no broad drive scopes');
+    assert.ok(java.includes('uploadMedia'), 'media upload method');
+    assert.ok(java.includes('downloadMedia'), 'media download method');
+    assert.ok(java.includes('listMedia'), 'media list method');
 });
 
 test('vault probe degrades instead of rejecting (sign-in must survive it)', async () => {
@@ -449,22 +455,29 @@ test('a wrong credential costs more time on every try, and the cost survives a r
     }
 });
 
-test('account server config exists and defaults to local-only', async () => {
+test('Firebase config exists and the app stays self-contained', async () => {
     const html = await read('www', 'index.html');
-    assert.ok(html.includes("var API_URL = '';"), 'API_URL defaults to local-only mode');
-    assert.ok(html.includes('server/api'), 'config points at the bundled server');
-    assert.ok(html.includes('connect-src'), 'CSP reminder documented next to API_URL');
+    assert.ok(html.includes('var FIREBASE = {'), 'FIREBASE config present');
+    assert.ok(html.includes("projectId: 'pclinic-20d81'"), 'same project as the web app');
+    assert.ok(!html.includes('var API_URL'), 'custom-server config is gone');
+    assert.ok(html.includes('identitytoolkit.googleapis.com'), 'auth endpoint pinned in CSP');
+    assert.ok(html.includes('firestore.googleapis.com'), 'firestore endpoint pinned in CSP');
+    assert.ok(html.includes('securetoken.googleapis.com'), 'token refresh endpoint pinned in CSP');
 });
 
-test('API client speaks to the account server with a bearer token', async () => {
+test('Firebase client uses REST with bearer tokens and refresh', async () => {
     const html = await read('www', 'index.html');
-    assert.ok(html.includes('function apiCall(method, path, body)'), 'apiCall defined');
+    assert.ok(html.includes('function fbAuth(action, body)'), 'fbAuth defined');
+    assert.ok(html.includes('function fbStore(method, path, body, retried)'), 'fbStore defined');
+    assert.ok(html.includes('function fbRefreshToken()'), 'token refresh defined');
     assert.ok(html.includes("'Bearer ' + tok"), 'bearer token attached');
-    assert.ok(html.includes("'/api/auth/register'"), 'register endpoint');
-    assert.ok(html.includes("'/api/auth/login'"), 'login endpoint');
-    assert.ok(html.includes("'/api/data'"), 'data endpoints');
-    assert.ok(html.includes("'/api/account'"), 'account record endpoint');
-    assert.ok(html.includes('pclinic_api_token'), 'token persisted');
+    assert.ok(html.includes("'signUp'"), 'register action');
+    assert.ok(html.includes("'signInWithPassword'"), 'login action');
+    assert.ok(html.includes("'setPassword'"), 'change-password action');
+    assert.ok(html.includes("'sendPasswordResetEmail'"), 'reset action');
+    assert.ok(html.includes('pclinic_api_token'), 'id token persisted');
+    assert.ok(html.includes('pclinic_api_refresh'), 'refresh token persisted');
+    assert.ok(html.includes('pclinic_api_uid'), 'uid persisted');
 });
 
 test('every encrypted save is pushed to the server replica', async () => {
@@ -499,7 +512,7 @@ test('registration creates the server account before the local one', async () =>
     assert.ok(start > -1, 'registerAccount found');
     const body = html.slice(start, start + 3200);
     assert.ok(body.includes('apiRegister(emailNorm, password)'), 'server account created first');
-    assert.ok(body.includes('apiSetToken(res.token, emailNorm)'), 'token stored');
+    assert.ok(body.includes('apiSetToken(res.token, emailNorm, res.refreshToken, res.uid)'), 'tokens stored');
     assert.ok(body.includes('syncAccount(res.user)'), 'crypto record synced');
     assert.ok(body.includes('syncPushAll(res.user)'), 'initial stores synced');
 });
@@ -512,19 +525,15 @@ test('logout ends the server session too', async () => {
     assert.ok(body.includes('apiClearToken()'), 'token discarded');
 });
 
-test('account server ships zero-dependency and tested', async () => {
+test('Firebase is the live backend; custom server is deprecated but kept', async () => {
+    const html = await read('www', 'index.html');
+    assert.ok(html.includes('FIREBASE CLIENT + ENCRYPTED SYNC'), 'app uses Firebase');
+    assert.ok(!html.includes('server/api'), 'app no longer references the custom server');
+    // The custom server remains in the repo for reference / fallback.
     const pkg = JSON.parse(await read('server', 'api', 'package.json'));
-    assert.deepEqual(pkg.dependencies || {}, {}, 'no runtime dependencies');
-    assert.ok(pkg.scripts.start.includes('node index.js'), 'node index.js runs it');
-    const server = await read('server', 'api', 'index.js');
-    assert.ok(server.includes("'/api/auth/register'"), 'register route');
-    assert.ok(server.includes("'/api/auth/login'"), 'login route');
-    assert.ok(server.includes("'/api/data'"), 'blob routes');
-    const auth = await read('server', 'api', 'auth.js');
-    assert.ok(auth.includes('scryptSync'), 'scrypt password hashing');
-    assert.ok(auth.includes('timingSafeEqual'), 'constant-time compare');
-    const tests = await read('server', 'api', 'test', 'api.test.mjs');
-    assert.ok(tests.includes('encrypted blobs round-trip'), 'server contract tests exist');
+    assert.deepEqual(pkg.dependencies || {}, {}, 'custom server still zero-dependency');
+    const readme = await read('server', 'api', 'README.md');
+    assert.ok(/deprecat|replaced|Firebase/i.test(readme), 'server README notes the replacement');
 });
 
 test('auto-lock default is minutes, not days', async () => {
@@ -544,9 +553,9 @@ test('credential changes keep the server replica in step', async () => {
     for (const fn of ['apiChangePassword', 'apiResetPassword', 'apiChangeEmail']) {
         assert.ok(html.includes('function ' + fn + '('), fn + ' defined');
     }
-    assert.ok(html.includes("'/api/auth/change-password'"), 'change-password endpoint');
-    assert.ok(html.includes("'/api/auth/reset-password'"), 'reset-password endpoint');
-    assert.ok(html.includes("'/api/auth/change-email'"), 'change-email endpoint');
+    assert.ok(html.includes("'setPassword'"), 'change-password via Firebase setPassword');
+    assert.ok(html.includes("'sendPasswordResetEmail'"), 'reset via Firebase e-mailed link');
+    assert.ok(html.includes("'update'"), 'change-email via Firebase update');
 
     // Password change: server password + crypto record both sync.
     const chg = html.slice(html.indexOf('function changePasswordWithRewrap'), html.indexOf('function changePasswordWithRewrap') + 1600);
@@ -583,4 +592,21 @@ test('new-device sign-in asks for an e-mail, not a username', async () => {
     for (const lang of ['en', 'fr', 'rw']) {
         assert.ok(html.includes('usernameOrEmailPh:'), 'usernameOrEmailPh present (' + lang + ' block)');
     }
+});
+
+test('media bytes sync to the visible Drive folder', async () => {
+    const html = await read('www', 'index.html');
+    assert.ok(html.includes('function drivePlugin()'), 'drive plugin resolver');
+    assert.ok(html.includes('function driveUploadMedia(item)'), 'media upload defined');
+    assert.ok(html.includes('function driveDownloadMedia(fileId)'), 'media download defined');
+    assert.ok(html.includes('function driveSyncMedia()'), 'bulk media sync defined');
+    assert.ok(html.includes('driveId: it.driveId'), 'media index tracks the Drive file id');
+    // New-device: missing local bytes fall back to Drive.
+    const url = html.slice(html.indexOf('function mediaUrlFor'), html.indexOf('function mediaUrlFor') + 2200);
+    assert.ok(url.includes('driveDownloadMedia(e.driveId)'), 'mediaUrlFor downloads from Drive');
+    assert.ok(url.includes('MediaStore.put(ref, dl.bytes)'), 'downloaded bytes are cached locally');
+    // Upload triggers: after sign-in and after new media is saved.
+    assert.ok(html.includes('driveSyncMedia().catch'), 'media sync is kicked off');
+    assert.ok(html.includes('G.uploadMedia'), 'plugin uploadMedia called');
+    assert.ok(html.includes('G.downloadMedia'), 'plugin downloadMedia called');
 });

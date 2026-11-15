@@ -43,6 +43,11 @@ import java.util.concurrent.Executors;
 public class GoogleDrivePlugin extends Plugin {
 
     private static final String SCOPE_APPDATA = "https://www.googleapis.com/auth/drive.appdata";
+    // drive.file lets the app manage files IT creates — including photos/videos
+    // in a visible "PClinic Media" folder (appdata stays for vault snapshots).
+    private static final String SCOPE_FILE = "https://www.googleapis.com/auth/drive.file";
+    private static final String SCOPES = SCOPE_APPDATA + " " + SCOPE_FILE;
+    private static final String MEDIA_FOLDER = "PClinic Media";
     private static final String PREFS = "pclinic_drive_sync";
     private static final String KEY_LAST = "last_sync";
     private static final String KEY_REC_ID = "file_id_records";
@@ -67,7 +72,7 @@ public class GoogleDrivePlugin extends Plugin {
 
     private GoogleSignInClient client() {
         GoogleSignInOptions o = new GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
-                .requestScopes(new Scope(SCOPE_APPDATA))
+                .requestScopes(new Scope(SCOPE_APPDATA), new Scope(SCOPE_FILE))
                 .requestEmail()
                 .build();
         return GoogleSignIn.getClient(getActivity(), o);
@@ -93,7 +98,7 @@ public class GoogleDrivePlugin extends Plugin {
             try {
                 GoogleSignInAccount acc = GoogleSignIn.getSignedInAccountFromIntent(data).getResult();
                 // warm the scoped token now so later silent uploads need no UI
-                String token = GoogleAuthUtil.getToken(getContext(), acc.getAccount(), "oauth2:" + SCOPE_APPDATA);
+                String token = GoogleAuthUtil.getToken(getContext(), acc.getAccount(), "oauth2:" + SCOPES);
                 prefs().edit().putBoolean(KEY_HAS_SNAP, listSnapshotIds(token) != null).apply();
                 ret.put("signedIn", true);
             } catch (Exception e) {
@@ -121,7 +126,7 @@ public class GoogleDrivePlugin extends Plugin {
             if (signedIn && !hasSnap) {
                 // Fresh install wipes prefs — ask Drive once so the restore nudge can fire.
                 try {
-                    String token = GoogleAuthUtil.getToken(getContext(), acc.getAccount(), "oauth2:" + SCOPE_APPDATA);
+                    String token = GoogleAuthUtil.getToken(getContext(), acc.getAccount(), "oauth2:" + SCOPES);
                     String[] ids = listSnapshotIds(token);
                     hasSnap = ids != null && ids[0] != null;
                     if (hasSnap) {
@@ -151,13 +156,13 @@ public class GoogleDrivePlugin extends Plugin {
                     call.resolve(ret);
                     return;
                 }
-                String token = GoogleAuthUtil.getToken(getContext(), acc.getAccount(), "oauth2:" + SCOPE_APPDATA);
+                String token = GoogleAuthUtil.getToken(getContext(), acc.getAccount(), "oauth2:" + SCOPES);
                 try {
                     doUpload(token);
                 } catch (Exception first) {
                     // Cached access tokens expire (~1h): invalidate, refetch, retry once.
                     GoogleAuthUtil.invalidateToken(getContext(), token);
-                    token = GoogleAuthUtil.getToken(getContext(), acc.getAccount(), "oauth2:" + SCOPE_APPDATA);
+                    token = GoogleAuthUtil.getToken(getContext(), acc.getAccount(), "oauth2:" + SCOPES);
                     doUpload(token);
                 }
                 JSObject ret = new JSObject();
@@ -213,12 +218,12 @@ public class GoogleDrivePlugin extends Plugin {
             try {
                 GoogleSignInAccount acc = GoogleSignIn.getLastSignedInAccount(getContext());
                 if (acc == null) { ret.put("ok", false); call.resolve(ret); return; }
-                String token = GoogleAuthUtil.getToken(getContext(), acc.getAccount(), "oauth2:" + SCOPE_APPDATA);
+                String token = GoogleAuthUtil.getToken(getContext(), acc.getAccount(), "oauth2:" + SCOPES);
                 try {
                     doDownload(token, ret);
                 } catch (Exception first) {
                     GoogleAuthUtil.invalidateToken(getContext(), token);
-                    token = GoogleAuthUtil.getToken(getContext(), acc.getAccount(), "oauth2:" + SCOPE_APPDATA);
+                    token = GoogleAuthUtil.getToken(getContext(), acc.getAccount(), "oauth2:" + SCOPES);
                     doDownload(token, ret);
                 }
                 call.resolve(ret);
@@ -341,5 +346,171 @@ public class GoogleDrivePlugin extends Plugin {
         while ((n = in.read(buf)) > 0) bos.write(buf, 0, n);
         in.close();
         return bos.toByteArray();
+    }
+
+    /* ── Media sync: photos/videos in a VISIBLE "PClinic Media" folder ──
+       The user asked for media to live in their Google Drive where they can
+       see it. drive.file scope covers files this app creates. Each upload
+       returns a file id the app stores on the media record, so a new device
+       can download the bytes back on demand. */
+
+    /** Upload one media file into the visible "PClinic Media" folder. */
+    @PluginMethod()
+    public void uploadMedia(PluginCall call) {
+        io.execute(() -> {
+            try {
+                GoogleSignInAccount acc = GoogleSignIn.getLastSignedInAccount(getContext());
+                if (acc == null) { call.reject("not signed in to Google Drive"); return; }
+                String name = call.getString("name", "media");
+                String mime = call.getString("mimeType", "application/octet-stream");
+                String b64 = call.getString("dataBase64", "");
+                String existingId = call.getString("fileId", null);
+                byte[] data = android.util.Base64.decode(b64, android.util.Base64.DEFAULT);
+                String token = GoogleAuthUtil.getToken(getContext(), acc.getAccount(), "oauth2:" + SCOPES);
+                String fileId;
+                try {
+                    fileId = doUploadMedia(token, existingId, name, mime, data);
+                } catch (Exception first) {
+                    GoogleAuthUtil.invalidateToken(getContext(), token);
+                    token = GoogleAuthUtil.getToken(getContext(), acc.getAccount(), "oauth2:" + SCOPES);
+                    fileId = doUploadMedia(token, existingId, name, mime, data);
+                }
+                JSObject ret = new JSObject();
+                ret.put("ok", true);
+                ret.put("fileId", fileId);
+                call.resolve(ret);
+            } catch (Exception e) {
+                call.reject("media upload failed: " + reason(e), e);
+            }
+        });
+    }
+
+    private String doUploadMedia(String token, String existingId, String name, String mime, byte[] data) throws Exception {
+        if (existingId != null && !existingId.isEmpty()) {
+            try {
+                mediaUpdate(token, existingId, data);
+                return existingId;
+            } catch (Exception ignored) { /* stale id — create fresh below */ }
+        }
+        String folderId = ensureMediaFolder(token);
+        return createMultipartInFolder(token, folderId, name, mime, data);
+    }
+
+    /** List the media files in the visible folder: [{id, name, mimeType}]. */
+    @PluginMethod()
+    public void listMedia(PluginCall call) {
+        io.execute(() -> {
+            try {
+                GoogleSignInAccount acc = GoogleSignIn.getLastSignedInAccount(getContext());
+                if (acc == null) { call.reject("not signed in to Google Drive"); return; }
+                String token = GoogleAuthUtil.getToken(getContext(), acc.getAccount(), "oauth2:" + SCOPES);
+                JSONArray out = new JSONArray();
+                String folderId = findFolder(token, MEDIA_FOLDER);
+                if (folderId != null) {
+                    JSONObject j = get(token, "https://www.googleapis.com/drive/v3/files?q="
+                            + java.net.URLEncoder.encode("'" + folderId + "' in parents and trashed=false", "UTF-8")
+                            + "&fields=files(id,name,mimeType)&pageSize=1000");
+                    JSONArray files = j.optJSONArray("files");
+                    if (files != null) {
+                        for (int i = 0; i < files.length(); i++) {
+                            JSONObject f = files.getJSONObject(i);
+                            JSONObject row = new JSONObject();
+                            row.put("id", f.optString("id"));
+                            row.put("name", f.optString("name"));
+                            row.put("mimeType", f.optString("mimeType"));
+                            out.put(row);
+                        }
+                    }
+                }
+                JSObject ret = new JSObject();
+                ret.put("ok", true);
+                ret.put("files", out);
+                call.resolve(ret);
+            } catch (Exception e) {
+                call.reject("media list failed: " + reason(e), e);
+            }
+        });
+    }
+
+    /** Download one media file's bytes (base64) by Drive file id. */
+    @PluginMethod()
+    public void downloadMedia(PluginCall call) {
+        io.execute(() -> {
+            try {
+                GoogleSignInAccount acc = GoogleSignIn.getLastSignedInAccount(getContext());
+                if (acc == null) { call.reject("not signed in to Google Drive"); return; }
+                String fileId = call.getString("fileId", "");
+                if (fileId == null || fileId.isEmpty()) { call.reject("no fileId"); return; }
+                String token = GoogleAuthUtil.getToken(getContext(), acc.getAccount(), "oauth2:" + SCOPES);
+                HttpURLConnection c = (HttpURLConnection) new URL(
+                        "https://www.googleapis.com/drive/v3/files/" + fileId + "?alt=media").openConnection();
+                c.setRequestProperty("Authorization", "Bearer " + token);
+                int code = c.getResponseCode();
+                if (code >= 400) throw new Exception("drive get " + code);
+                byte[] data = readAll(c.getInputStream());
+                JSObject ret = new JSObject();
+                ret.put("ok", true);
+                ret.put("dataBase64", android.util.Base64.encodeToString(data, android.util.Base64.NO_WRAP));
+                call.resolve(ret);
+            } catch (Exception e) {
+                call.reject("media download failed: " + reason(e), e);
+            }
+        });
+    }
+
+    /** Find the visible media folder by name, or null. */
+    private String findFolder(String token, String name) throws Exception {
+        JSONObject j = get(token, "https://www.googleapis.com/drive/v3/files?q="
+                + java.net.URLEncoder.encode("name='" + name + "' and mimeType='application/vnd.google-apps.folder' and trashed=false", "UTF-8")
+                + "&fields=files(id)");
+        JSONArray files = j.optJSONArray("files");
+        if (files != null && files.length() > 0) return files.getJSONObject(0).optString("id");
+        return null;
+    }
+
+    /** Find or create the visible media folder; returns its id. */
+    private String ensureMediaFolder(String token) throws Exception {
+        String id = findFolder(token, MEDIA_FOLDER);
+        if (id != null) return id;
+        String meta = "{\"name\":\"" + MEDIA_FOLDER + "\",\"mimeType\":\"application/vnd.google-apps.folder\"}";
+        HttpURLConnection c = (HttpURLConnection) new URL(
+                "https://www.googleapis.com/drive/v3/files?fields=id").openConnection();
+        c.setRequestMethod("POST");
+        c.setDoOutput(true);
+        c.setRequestProperty("Authorization", "Bearer " + token);
+        c.setRequestProperty("Content-Type", "application/json; charset=UTF-8");
+        OutputStream out = c.getOutputStream();
+        out.write(meta.getBytes("UTF-8"));
+        out.close();
+        int code = c.getResponseCode();
+        String body = slurp(code >= 400 ? c.getErrorStream() : c.getInputStream());
+        if (code >= 400) throw new Exception("drive folder create " + code + ": " + body);
+        return new JSONObject(body).optString("id");
+    }
+
+    /** Multipart create with an explicit parent folder (visible Drive). */
+    private String createMultipartInFolder(String token, String parentId, String name, String mime, byte[] data) throws Exception {
+        String boundary = "pclinic" + System.currentTimeMillis();
+        String safeName = name.replace("\\", "\\\\").replace("\"", "\\\"");
+        String meta = "{\"name\":\"" + safeName + "\",\"parents\":[\"" + parentId + "\"]}";
+        java.io.ByteArrayOutputStream bos = new java.io.ByteArrayOutputStream();
+        String head = "--" + boundary + "\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n" + meta
+                + "\r\n--" + boundary + "\r\nContent-Type: " + mime + "\r\n\r\n";
+        bos.write(head.getBytes("UTF-8"));
+        bos.write(data);
+        bos.write(("\r\n--" + boundary + "--\r\n").getBytes("UTF-8"));
+        HttpURLConnection c = (HttpURLConnection) new URL(
+                "https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart").openConnection();
+        c.setRequestMethod("POST");
+        c.setDoOutput(true);
+        c.setRequestProperty("Authorization", "Bearer " + token);
+        c.setRequestProperty("Content-Type", "multipart/related; boundary=" + boundary);
+        OutputStream out = c.getOutputStream();
+        out.write(bos.toByteArray());
+        out.close();
+        int code = c.getResponseCode();
+        String body = slurp(code >= 400 ? c.getErrorStream() : c.getInputStream());
+        if (code >= 400) throw new Exception("drive media create " + code + ": " + body);
+        return new JSONObject(body).optString("id");
     }
 }

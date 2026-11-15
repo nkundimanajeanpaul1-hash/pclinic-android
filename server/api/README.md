@@ -1,5 +1,11 @@
 # PClinic Pro — account + encrypted-sync server
 
+> **DEPRECATED (2026-11):** the app now uses **Firebase Auth + Firestore**
+> directly (see `FIREBASE` config in `www/index.html`). This custom server
+> is kept in the repo for reference and as a fallback, but the app no longer
+> calls it. The end-to-end encryption model is identical — only the transport
+> changed.
+
 A tiny, dependency-free Node.js server that gives the Android app
 **Facebook-style accounts**: sign in with e-mail + password on any device and
 your records are there.

@@ -1,7 +1,12 @@
 # Google Drive silent sync — one-time Cloud Console setup (≈6 min)
 
 The app syncs vault snapshots to Drive's **appDataFolder**: hidden from the
-user's Drive UI, per-app, and quota-free. Scope used: `drive.appdata` only.
+user's Drive UI, per-app, and quota-free. Scope used: `drive.appdata`.
+
+The app also uploads **photos/videos** to a **visible** `PClinic Media`
+folder in the user's Drive. That needs one more scope:
+`https://www.googleapis.com/auth/drive.file` (files this app creates only —
+the least-privilege option; the app cannot see the user's other files).
 No client-id string lives in code — Google matches your app by **package name
 + signing-certificate SHA-1**, so you only register an OAuth Android client.
 
@@ -12,7 +17,8 @@ No client-id string lives in code — Google matches your app by **package name
 3. **APIs & Services → OAuth consent screen**
    - User type: *External* (Internal if you have a Workspace org).
    - App name: `PClinic`; support email: yours.
-   - Scopes: **add** `https://www.googleapis.com/auth/drive.appdata`.
+   - Scopes: **add** `https://www.googleapis.com/auth/drive.appdata` **and**
+     `https://www.googleapis.com/auth/drive.file`.
    - Test users: add your Google account(s) while the app is in *Testing*.
      (Publish later to remove the 7-day test-token expiry.)
 4. **APIs & Services → Credentials → Create credentials → OAuth client ID**

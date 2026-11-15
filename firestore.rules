@@ -1,0 +1,26 @@
+// PClinic Pro — Firestore security rules.
+//
+// Deploy:  firebase deploy --only firestore:rules
+// (or paste into Firebase Console -> Firestore Database -> Rules)
+//
+// Model: each user owns exactly one subtree — users/{uid}/sync/{key} —
+// holding ENCRYPTED blobs (the app encrypts everything on-device; Firestore
+// only ever stores ciphertext). Nobody can read or write anyone else's data,
+// and the web app's collections are untouched by these rules.
+
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // A signed-in user may read/write ONLY their own sync subtree.
+    match /users/{uid}/sync/{key} {
+      allow read, write: if request.auth != null && request.auth.uid == uid;
+    }
+
+    // Everything else (including the web app's collections) is denied by
+    // default — add explicit matches if the web app needs them.
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

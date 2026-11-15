@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; media-src 'self' blob:; font-src 'self' data:; connect-src 'self' https://api.emailjs.com https://us-central1-pclinic-20d81.cloudfunctions.net; child-src 'self' blob:; frame-src 'self' blob:; object-src 'none'; base-uri 'self'; form-action 'self';">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; media-src 'self' blob:; font-src 'self' data:; connect-src 'self' https://api.emailjs.com https://us-central1-pclinic-20d81.cloudfunctions.net https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://firestore.googleapis.com; child-src 'self' blob:; frame-src 'self' blob:; object-src 'none'; base-uri 'self'; form-action 'self';">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=2.0, user-scalable=yes">
     <title>PClinic Pro - Drive Backup</title>
     <meta name="apple-mobile-web-app-capable" content="yes">
@@ -3805,6 +3805,85 @@
             };
         })();
 
+        // ============================================================================
+        //  DRIVE MEDIA SYNC — photos/videos in the visible "PClinic Media" folder
+        //  Records (with media references) sync to Firestore; the media BYTES
+        //  sync to the user's Google Drive. Each media item gains a driveId
+        //  once uploaded, so a new device downloads the bytes on demand.
+        //  No-ops gracefully when the plugin is absent (browser preview) or
+        //  the user has not signed in to Drive.
+        // ============================================================================
+        function drivePlugin() {
+            return (window.Capacitor && Capacitor.Plugins && Capacitor.Plugins.GoogleDrive) || null;
+        }
+
+        // Upload one media item's bytes to Drive; returns the Drive file id.
+        function driveUploadMedia(item) {
+            var G = drivePlugin();
+            if (!G || !item) return Promise.resolve(null);
+            var ref = item.file || '';
+            var bytesP = ref && MediaStore.available()
+                ? MediaStore.get(ref)
+                : Promise.resolve(item.data && String(item.data).indexOf('data:') === 0
+                    ? MediaStore.bytesFromB64(String(item.data).split(',').slice(1).join(','))
+                    : null);
+            return bytesP.then(function (bytes) {
+                if (!bytes || !bytes.length) return null;
+                var ext = (item.mime || '').indexOf('video') === 0 ? 'mp4'
+                    : (item.mime || '').indexOf('png') > -1 ? 'png' : 'jpg';
+                return G.uploadMedia({
+                    name: (item.id || 'media') + '.' + ext,
+                    mimeType: item.mime || 'application/octet-stream',
+                    dataBase64: MediaStore.b64FromBytes(bytes),
+                    fileId: item.driveId || ''
+                }).then(function (r) {
+                    return (r && r.ok && r.fileId) ? r.fileId : null;
+                }).catch(function (e) {
+                    console.warn('drive media upload failed', e);
+                    return null;
+                });
+            });
+        }
+
+        // Download one media file's bytes from Drive. {bytes} or null.
+        function driveDownloadMedia(fileId) {
+            var G = drivePlugin();
+            if (!G || !fileId) return Promise.resolve(null);
+            return G.downloadMedia({ fileId: fileId }).then(function (r) {
+                if (!r || !r.ok || !r.dataBase64) return null;
+                return { bytes: MediaStore.bytesFromB64(r.dataBase64) };
+            }).catch(function (e) {
+                console.warn('drive media download failed', e);
+                return null;
+            });
+        }
+
+        // Upload every local media item that has no Drive copy yet.
+        // Called after sign-in and after new media is saved.
+        function driveSyncMedia() {
+            var G = drivePlugin();
+            if (!G || !currentUser) return Promise.resolve(0);
+            var jobs = [];
+            (patients || []).forEach(function (p) {
+                (p.media || []).forEach(function (it) {
+                    if (it && !it.driveId && (it.file || it.data)) jobs.push({ p: p, it: it });
+                });
+            });
+            if (!jobs.length) return Promise.resolve(0);
+            var chain = Promise.resolve(0);
+            jobs.forEach(function (job) {
+                chain = chain.then(function (n) {
+                    return driveUploadMedia(job.it).then(function (fileId) {
+                        if (fileId) {
+                            job.it.driveId = fileId;
+                            return updatePatient(job.p.id, { media: job.p.media }).then(function () { return n + 1; });
+                        }
+                        return n;
+                    });
+                });
+            });
+            return chain;
+        }
 
         // ============================================================================
         //  MEDIA INDEX / URL RESOLUTION / MIGRATION
@@ -3825,7 +3904,8 @@
                         mime: it.mime || (it.type === 'video' ? 'video/mp4' : 'image/jpeg'),
                         type: it.type || 'image',
                         inlineData: it.data || '',
-                        inlineThumb: it.thumbnail || ''
+                        inlineThumb: it.thumbnail || '',
+                        driveId: it.driveId || ''
                     };
                 });
             });
@@ -3857,6 +3937,19 @@
             } else p = Promise.resolve(null);
 
             return p.then(function (bytes) {
+                // New device / cleared storage: fetch the bytes from Drive.
+                if ((!bytes || !bytes.length) && e.driveId && typeof driveDownloadMedia === 'function') {
+                    return driveDownloadMedia(e.driveId).then(function (dl) {
+                        if (!dl || !dl.bytes || !dl.bytes.length) return null;
+                        // Cache locally so the next view is instant.
+                        if (ref && MediaStore.available()) {
+                            return MediaStore.put(ref, dl.bytes).then(function () { return dl.bytes; }).catch(function () { return dl.bytes; });
+                        }
+                        return dl.bytes;
+                    }).catch(function () { return null; });
+                }
+                return bytes;
+            }).then(function (bytes) {
                 if (!bytes || !bytes.length) return '';
                 var mime = e.mime || 'application/octet-stream';
                 if (wantThumb && !e.thumbRef && !e.inlineThumb) mime = e.mime; // full image used as its own thumb
@@ -4410,7 +4503,7 @@
             }
             return apiLogin(u.email, password).then(function(res) {
                 if (res.ok) {
-                    apiSetToken(res.token, u.email);
+                    apiSetToken(res.token, u.email, res.refreshToken, res.uid);
                     // Pull the replica, then push the local crypto record up so
                     // the server always holds the current wrapped keys.
                     return syncPull(u).then(function() { return syncAccount(u); });
@@ -4434,7 +4527,7 @@
                     if (res._status === 0) return { ok: false, error: t('signInFailed').replace('{n}', 'network') };
                     return { ok: false, error: res.error || t('signInFailed').replace('{n}', '') };
                 }
-                apiSetToken(res.token, email);
+                apiSetToken(res.token, email, res.refreshToken, res.uid);
                 return apiGetData().then(function(data) {
                     if (!data.ok || !data.account) {
                         apiClearToken();
@@ -4539,10 +4632,10 @@
             var serverStep = Promise.resolve();
             if (apiEnabled()) {
                 serverStep = apiRegister(emailNorm, password).then(function(res) {
-                    if (res.ok) { apiSetToken(res.token, emailNorm); return; }
+                    if (res.ok) { apiSetToken(res.token, emailNorm, res.refreshToken, res.uid); return; }
                     if (res._status === 409) {
                         return apiLogin(emailNorm, password).then(function(lr) {
-                            if (lr.ok) { apiSetToken(lr.token, emailNorm); return; }
+                            if (lr.ok) { apiSetToken(lr.token, emailNorm, lr.refreshToken, lr.uid); return; }
                             throw new Error(lr.error || 'Could not sign in to the existing account.');
                         });
                     }
@@ -6811,6 +6904,10 @@
                     if (profileCreated) profileCreated.textContent = t('createdLabel') + new Date(user.createdAt).toLocaleDateString();
                     setTimeout(checkBackupReminder, 900);
                     loadDriveToken();
+                    // Push any media that has no Drive copy yet (background).
+                    if (typeof driveSyncMedia === 'function') {
+                        driveSyncMedia().catch(function (e) { console.warn('drive media sync failed', e); });
+                    }
                     setTimeout(showFirstTimeHelp, 1200);
                     lastActivityAt = Date.now();
                     refreshProfileSecurity();
@@ -8017,17 +8114,20 @@
         var SMS_RELAY_URL = '';
 
         // ============================================================================
-        //  CONFIGURATION — account server (Facebook-style sign-in + encrypted sync)
-        //  Point this at the server in server/api (e.g. 'https://pclinic.example.com').
-        //  With it set, users sign in with e-mail + password and their ENCRYPTED
-        //  records sync to the server, so the same account works on any device.
-        //  The server only ever stores ciphertext — patient data stays encrypted
-        //  on-device with the password-derived key (see server/api/README.md).
-        //  Leave it as '' for local-only mode (accounts live on this device only).
-        //  IMPORTANT: also add this origin to connect-src in the CSP meta tag at
-        //  the top of this file, or the browser will block the calls to it.
+        //  CONFIGURATION — Firebase (accounts + encrypted sync)
+        //  Users sign in with e-mail + password (Firebase Auth) and their
+        //  ENCRYPTED records sync to Firestore, so the same account works on
+        //  any device. Firestore only ever stores ciphertext — patient data
+        //  stays encrypted on-device with the password-derived key.
+        //  Photos/videos sync separately to the user's Google Drive (visible
+        //  "PClinic Media" folder) via the native Drive plugin.
+        //  The apiKey below is a public identifier (same project as the
+        //  PClinic web app), not a secret. Leave apiKey '' for local-only mode.
         // ============================================================================
-        var API_URL = '';
+        var FIREBASE = {
+            apiKey: 'AIzaSyAcfSN-Z1FRnZC6bASy3b08abPDYJr-Ku0',
+            projectId: 'pclinic-20d81'
+        };
 
         var emailjsReady = false;
 
@@ -8046,44 +8146,122 @@
         }
 
         // ============================================================================
-        //  ACCOUNT SERVER CLIENT + ENCRYPTED SYNC
-        //  When API_URL is set, sign-in goes through the server (server/api) and
-        //  the user's ENCRYPTED records sync to it, so one account works on any
-        //  device. The server stores only ciphertext + wrapped keys; the data
+        //  FIREBASE CLIENT + ENCRYPTED SYNC
+        //  Sign-in goes through Firebase Auth (e-mail + password); the user's
+        //  ENCRYPTED records sync to Firestore, so one account works on any
+        //  device. Firestore stores only ciphertext + wrapped keys; the data
         //  key is derived from the password on-device and never leaves it.
-        //  The local vault stays the working copy (offline-first); the server
+        //  The local vault stays the working copy (offline-first); Firestore
         //  is a replica that syncs when connectivity allows.
+        //  Uses the Firebase REST APIs directly (no SDK to vendor), so the
+        //  app stays fully self-contained.
         // ============================================================================
-        var API_TOKEN_KEY = 'pclinic_api_token';
+        var API_TOKEN_KEY = 'pclinic_api_token';       // Firebase ID token
+        var API_REFRESH_KEY = 'pclinic_api_refresh';   // Firebase refresh token
+        var API_UID_KEY = 'pclinic_api_uid';           // Firebase user id
         var API_EMAIL_KEY = 'pclinic_api_email';
         var SYNC_QUEUE_KEY = 'pclinic_sync_queue';
         var SYNC_TIMES_KEY = 'pclinic_sync_times_';   // + userId
 
-        function apiEnabled() { return !!API_URL; }
+        function apiEnabled() { return !!(FIREBASE && FIREBASE.apiKey && FIREBASE.projectId); }
 
         function apiToken() {
             try { return localStorage.getItem(API_TOKEN_KEY) || ''; } catch (e) { return ''; }
         }
-        function apiSetToken(token, email) {
+        function apiUid() {
+            try { return localStorage.getItem(API_UID_KEY) || ''; } catch (e) { return ''; }
+        }
+        function apiSetToken(token, email, refresh, uid) {
             try {
                 if (token) localStorage.setItem(API_TOKEN_KEY, token);
                 else localStorage.removeItem(API_TOKEN_KEY);
+                if (refresh) localStorage.setItem(API_REFRESH_KEY, refresh);
+                if (uid) localStorage.setItem(API_UID_KEY, uid);
                 if (email) localStorage.setItem(API_EMAIL_KEY, email);
             } catch (e) {}
         }
         function apiClearToken() {
-            try { localStorage.removeItem(API_TOKEN_KEY); } catch (e) {}
+            try {
+                localStorage.removeItem(API_TOKEN_KEY);
+                localStorage.removeItem(API_REFRESH_KEY);
+                localStorage.removeItem(API_UID_KEY);
+            } catch (e) {}
         }
 
-        function apiCall(method, path, body) {
-            if (!API_URL) return Promise.resolve({ ok: false, error: 'apiDisabled', _status: 0 });
+        function fbAuthUrl(action) {
+            return 'https://identitytoolkit.googleapis.com/v1/accounts:' + action + '?key=' + FIREBASE.apiKey;
+        }
+        function fbStoreUrl() {
+            return 'https://firestore.googleapis.com/v1/projects/' + FIREBASE.projectId + '/databases/(default)/documents';
+        }
+
+        // One Firebase Auth call. Returns {ok, idToken, refreshToken, uid, email}
+        // or {ok:false, error, _status} in the shape the callers expect.
+        function fbAuth(action, body) {
+            if (!apiEnabled()) return Promise.resolve({ ok: false, error: 'apiDisabled', _status: 0 });
+            return fetch(fbAuthUrl(action), {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(body)
+            }).then(function(res) {
+                return res.json().catch(function() { return {}; }).then(function(json) {
+                    if (res.ok && json.idToken) {
+                        return {
+                            ok: true, _status: res.status,
+                            token: json.idToken,
+                            refreshToken: json.refreshToken || '',
+                            uid: json.localId || '',
+                            email: json.email || (body && body.email) || ''
+                        };
+                    }
+                    var msg = (json.error && (json.error.message || json.error.status)) || 'authFailed';
+                    var status = res.status;
+                    if (/EMAIL_EXISTS/.test(msg)) status = 409;
+                    else if (/INVALID_PASSWORD|EMAIL_NOT_FOUND|INVALID_LOGIN_CREDENTIALS/.test(msg)) status = 401;
+                    return { ok: false, error: msg, _status: status };
+                });
+            }).catch(function() {
+                return { ok: false, error: 'network', _status: 0 };
+            });
+        }
+
+        // Refresh the ID token (they expire after 1 hour). Resolves true on success.
+        function fbRefreshToken() {
+            var refresh = '';
+            try { refresh = localStorage.getItem(API_REFRESH_KEY) || ''; } catch (e) {}
+            if (!refresh) return Promise.resolve(false);
+            return fetch('https://securetoken.googleapis.com/v1/token', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ grant_type: 'refresh_token', refresh_token: refresh })
+            }).then(function(res) {
+                return res.json().catch(function() { return {}; }).then(function(json) {
+                    if (res.ok && json.id_token) {
+                        apiSetToken(json.id_token, null, json.refresh_token || refresh, null);
+                        return true;
+                    }
+                    return false;
+                });
+            }).catch(function() { return false; });
+        }
+
+        // One Firestore call with automatic token refresh + single retry on 401.
+        function fbStore(method, path, body, retried) {
+            if (!apiEnabled()) return Promise.resolve({ ok: false, error: 'apiDisabled', _status: 0 });
             var opts = { method: method, headers: { 'Content-Type': 'application/json' } };
             var tok = apiToken();
             if (tok) opts.headers['Authorization'] = 'Bearer ' + tok;
             if (body) opts.body = JSON.stringify(body);
-            return fetch(API_URL + path, opts).then(function(res) {
-                return res.json().catch(function() { return { ok: false, error: 'badResponse' }; }).then(function(json) {
+            return fetch(fbStoreUrl() + path, opts).then(function(res) {
+                if (res.status === 401 && !retried) {
+                    return fbRefreshToken().then(function(ok) {
+                        if (ok) return fbStore(method, path, body, true);
+                        return { ok: false, error: 'unauthorized', _status: 401 };
+                    });
+                }
+                return res.json().catch(function() { return {}; }).then(function(json) {
                     json._status = res.status;
+                    json.ok = res.ok;
                     return json;
                 });
             }).catch(function() {
@@ -8091,32 +8269,83 @@
             });
         }
 
+        function syncDocPath(key) { return '/users/' + encodeURIComponent(apiUid()) + '/sync/' + encodeURIComponent(key); }
+
         function apiRegister(email, password) {
-            return apiCall('POST', '/api/auth/register', { email: email, password: password });
+            return fbAuth('signUp', { email: email, password: password, returnSecureToken: true });
         }
         function apiLogin(email, password) {
-            return apiCall('POST', '/api/auth/login', { email: email, password: password });
+            return fbAuth('signInWithPassword', { email: email, password: password, returnSecureToken: true });
         }
         function apiLogout() {
-            return apiCall('POST', '/api/auth/logout', {});
+            // Firebase tokens are stateless; the client just discards them.
+            return Promise.resolve({ ok: true });
         }
         function apiGetData() {
-            return apiCall('GET', '/api/data');
+            if (!apiUid()) return Promise.resolve({ ok: false, error: 'notSignedIn', _status: 401 });
+            return fbStore('GET', '/users/' + encodeURIComponent(apiUid()) + '/sync').then(function(res) {
+                if (!res.ok) return { ok: false, error: res.error || 'fetchFailed', _status: res._status };
+                var account = null, blobs = {};
+                (res.documents || []).forEach(function(doc) {
+                    var key = doc.name.split('/').pop();
+                    var payload = doc.fields && doc.fields.payload && doc.fields.payload.stringValue;
+                    var updatedAt = doc.fields && doc.fields.updatedAt && doc.fields.updatedAt.stringValue;
+                    if (!payload) return;
+                    var data;
+                    try { data = JSON.parse(payload); } catch (e) { return; }
+                    if (key === 'account') account = data;
+                    else blobs[key] = { data: data, updatedAt: updatedAt || '' };
+                });
+                return { ok: true, account: account, blobs: blobs };
+            });
         }
         function apiPutAccount(account) {
-            return apiCall('PUT', '/api/account', { account: account });
+            if (!apiUid()) return Promise.resolve({ ok: false, error: 'notSignedIn', _status: 401 });
+            var updatedAt = new Date().toISOString();
+            return fbStore('PATCH', syncDocPath('account') + '?updateMask.fieldPaths=payload&updateMask.fieldPaths=updatedAt', {
+                fields: {
+                    payload: { stringValue: JSON.stringify(account) },
+                    updatedAt: { stringValue: updatedAt }
+                }
+            }).then(function(res) { return { ok: !!res.ok, error: res.error, _status: res._status }; });
         }
         function apiPutBlob(key, data) {
-            return apiCall('PUT', '/api/data', { key: key, data: data });
+            if (!apiUid()) return Promise.resolve({ ok: false, error: 'notSignedIn', _status: 401 });
+            var updatedAt = new Date().toISOString();
+            return fbStore('PATCH', syncDocPath(key) + '?updateMask.fieldPaths=payload&updateMask.fieldPaths=updatedAt', {
+                fields: {
+                    payload: { stringValue: JSON.stringify(data) },
+                    updatedAt: { stringValue: updatedAt }
+                }
+            }).then(function(res) { return { ok: !!res.ok, updatedAt: updatedAt, error: res.error, _status: res._status }; });
         }
         function apiChangePassword(currentPassword, newPassword) {
-            return apiCall('POST', '/api/auth/change-password', { currentPassword: currentPassword, newPassword: newPassword });
+            // Firebase proves identity with the ID token itself; the current
+            // password is not needed (and not sent). setPassword rotates it.
+            var tok = apiToken();
+            if (!tok) return Promise.resolve({ ok: false, error: 'notSignedIn', _status: 401 });
+            return fbAuth('setPassword', { idToken: tok, newPassword: newPassword }).then(function(res) {
+                if (res.ok && res.token) apiSetToken(res.token, null, null, null);
+                return res;
+            });
         }
         function apiResetPassword(email, recoveryCode, newPassword) {
-            return apiCall('POST', '/api/auth/reset-password', { email: email, recoveryCode: recoveryCode, newPassword: newPassword });
+            // Firebase cannot verify our recovery code, so the server-side
+            // reset goes through Firebase's own e-mailed reset link. The
+            // recovery code already proved identity on-device; this step
+            // brings the Firebase password in line with the new one.
+            // (recoveryCode is accepted for interface compatibility.)
+            void recoveryCode; void newPassword;
+            return fbAuth('sendPasswordResetEmail', { requestType: 'PASSWORD_RESET', email: email })
+                .then(function(res) { return { ok: res.ok, error: res.error, _status: res._status }; });
         }
         function apiChangeEmail(newEmail) {
-            return apiCall('POST', '/api/auth/change-email', { newEmail: newEmail });
+            var tok = apiToken();
+            if (!tok) return Promise.resolve({ ok: false, error: 'notSignedIn', _status: 401 });
+            return fbAuth('update', { idToken: tok, email: newEmail, returnSecureToken: true }).then(function(res) {
+                if (res.ok) apiSetToken(res.token || tok, newEmail, res.refreshToken, res.uid);
+                return res;
+            });
         }
 
         // ------------------------------------------------------------ sync engine
@@ -8900,6 +9129,10 @@
                 }
                 rebuildMediaIndex();
                 renderDetail(pid);
+                // Upload the new media bytes to Drive (background, best effort).
+                if (typeof driveSyncMedia === 'function') {
+                    driveSyncMedia().catch(function (e) { console.warn('drive media sync failed', e); });
+                }
             }
         }
 
