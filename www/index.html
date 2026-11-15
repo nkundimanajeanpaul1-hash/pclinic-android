@@ -1967,7 +1967,7 @@
                         <img src="logo.png" alt="Logo">
                     </div>
                     <div class="ios-auth-subtitle" data-i18n="subtitle">Clinical Management Pro</div>
-                    <div class="ios-auth-hint" data-i18n="authHint">Default: admin / admin &nbsp;|&nbsp; or register new</div>
+                    <div class="ios-auth-hint" data-i18n="authHint">Create your account to get started</div>
                 </div>
 
                 <div id="loginPanel" class="ios-auth-panel active">
@@ -2840,24 +2840,28 @@
             <div class="ios-modal-title">🛡️ Privacy notice</div>
             <div id="privacyBody" style="font-size:12.5px; line-height:1.55; color:var(--ios-secondary-label);
                  max-height:52vh; overflow-y:auto; -webkit-overflow-scrolling:touch; margin-bottom:12px;">
-                <p style="margin:0 0 10px;"><b>Your patient records never leave this device.</b>
-                PClinic Pro has no server. Everything you enter is stored only in this app's private
-                storage on this phone.</p>
+                <p style="margin:0 0 10px;"><b>Your patient records are encrypted before they
+                ever leave this device.</b> Everything you enter is encrypted on this phone with a
+                key derived from your password. Only the encrypted copies sync — so the same
+                account works on any device, but nobody can read your records without your password.</p>
 
-                <p style="margin:0 0 6px;"><b>What is stored</b></p>
+                <p style="margin:0 0 6px;"><b>What is stored, and where</b></p>
                 <ul style="margin:0 0 10px; padding-left:18px;">
-                    <li>Patient details, clinical notes, photos and videos.</li>
-                    <li>Your account: username, and a password that is <i>hashed</i> — we never store
+                    <li>Patient details and clinical notes — encrypted on this device, with an
+                        encrypted replica in Firebase (so you can sign in anywhere).</li>
+                    <li>Photos and videos — encrypted files on this device, with copies in your
+                        Google Drive ("PClinic Media" folder).</li>
+                    <li>Your account: e-mail, and a password that is <i>hashed</i> — we never store
                         the password itself.</li>
                     <li>A record of actions (sign-ins, edits, exports) shown under <i>Activities</i>.</li>
                 </ul>
 
                 <p style="margin:0 0 6px;"><b>How it is protected</b></p>
                 <ul style="margin:0 0 10px; padding-left:18px;">
-                    <li>Patient data is encrypted on this device with a key derived from your password.</li>
-                    <li>Photos and videos are stored as encrypted files outside the app's settings storage.</li>
-                    <li>Nobody at PClinic can read your records, and there is no account on a server to
-                        hack, because there is no server.</li>
+                    <li>Patient data is encrypted on this device with a key derived from your password.
+                        Firebase and Google Drive only ever hold ciphertext.</li>
+                    <li>Nobody at PClinic can read your records: without your password, the synced
+                        copies are unreadable.</li>
                 </ul>
 
                 <p style="margin:0 0 6px;"><b>Two things you should know</b></p>
@@ -4453,7 +4457,7 @@
         // Resolves {ok:true,user} / {ok:false}. A wrong PIN is reported as
         // wrongPassword so the form does not leak which credential type is on file.
         function signInWithPin(u, pin) {
-            if (!hasPin(u)) return Promise.resolve({ ok: false, noPin: true });
+            if (!hasPin(u)) return Promise.resolve({ ok: false, error: t('wrongPassword') });
             return deriveAccountKeys(pin, u.pin.salt, u.pin.iter).then(function(k) {
                 if (!safeEq(k.verifier, u.pin.hash)) return { ok: false, error: t('wrongPassword') };
                 return unwrapDEK(k.kek, u.dekPin).then(function(dek) {
@@ -4938,7 +4942,7 @@
         var translations = {
             en: {
                 subtitle: 'Clinical Management Pro',
-                authHint: 'Default: admin / admin — change password after login | or register',
+                authHint: 'Create your account to get started',
                 signIn: 'Sign In',
                 noAccount: "Don't have an account?",
                 createOne: 'Create one',
@@ -5326,7 +5330,7 @@
             },
             fr: {
                 subtitle: 'Gestion Clinique Pro',
-                authHint: 'Défaut: admin / admin  |  ou créez un compte',
+                authHint: 'Créez votre compte pour commencer',
                 signIn: 'Se connecter',
                 noAccount: "Vous n'avez pas de compte?",
                 createOne: 'Créer un compte',
@@ -5714,7 +5718,7 @@
             },
             rw: {
                 subtitle: 'Ubuvuzi Bwa Kliniki Pro',
-                authHint: 'Ubusanzwe: admin / admin  |  cyangwa wandike',
+                authHint: 'Fungura konti yawe utangire',
                 signIn: 'Kwinjira',
                 noAccount: 'Nta konti ufite?',
                 createOne: 'Hanga konti',
@@ -6864,6 +6868,13 @@
         function showPrivacyNoticeIfDue() {
             try {
                 if (!currentUser || currentUser.privacyAcceptedAt) return;
+                // Never cover the recovery-code modal (shown once, critical):
+                // defer until the user has dismissed it.
+                var rc = document.getElementById('recoveryCodeModal');
+                if (rc && rc.classList.contains('active')) {
+                    setTimeout(showPrivacyNoticeIfDue, 1500);
+                    return;
+                }
                 var pm = document.getElementById('privacyModal');
                 var meta = document.getElementById('privacyMeta');
                 if (meta) meta.textContent = t('notAcceptedYet');
@@ -9565,7 +9576,7 @@
                 withBusy(btn, t('signingIn'), signIn(username, password)).then(function(res) {
                     if (!res.ok) {
                         noteAuthFailure();
-                        loginError.textContent = authBusyMessage() || res.error;
+                        loginError.textContent = authBusyMessage() || res.error || t('wrongPassword');
                         loginPass.classList.add('error');
                         return;
                     }
