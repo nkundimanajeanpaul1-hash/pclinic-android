@@ -8353,7 +8353,7 @@
             var refresh = '';
             try { refresh = localStorage.getItem(API_REFRESH_KEY) || ''; } catch (e) {}
             if (!refresh) return Promise.resolve(false);
-            return fetch('https://securetoken.googleapis.com/v1/token', {
+            return fetch('https://securetoken.googleapis.com/v1/token?key=' + encodeURIComponent(FIREBASE.apiKey), {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ grant_type: 'refresh_token', refresh_token: refresh })
