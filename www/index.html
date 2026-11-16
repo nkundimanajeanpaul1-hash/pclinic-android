@@ -2709,6 +2709,12 @@
                 </div>
             </div>
             <div class="ios-form-group">
+                <div class="pcl-sec-row">
+                    <div><div class="pcl-sec-label" data-i18n="syncTitle">Cloud sync</div><div class="pcl-sec-sub" id="cloudSyncStatus">—</div></div>
+                    <button type="button" class="ios-btn ios-btn-secondary" id="cloudSyncNowBtn" style="padding:6px 12px;font-size:12px;" data-i18n="syncNow">Sync now</button>
+                </div>
+            </div>
+            <div class="ios-form-group">
                 <label class="ios-form-label" for="profileCurrentPass" data-i18n="currentPassword">Current Password</label>
                 <input type="password" class="ios-form-input" id="profileCurrentPass" placeholder="Enter current password" data-i18n-placeholder="currentPasswordPh">
             </div>
@@ -4336,7 +4342,7 @@
                 });
             });
             return Promise.all(jobs).then(function(list) {
-                patients = list;
+                replacePatientList(list);
                 if (Array.isArray(data.activity)) { saveActivities(data.activity); }
                 savePatients();
                 rebuildMediaIndex();
@@ -4533,6 +4539,7 @@
                         if (d.ok && d.account && d.account.id && d.account.id !== u.id) {
                             console.warn('cloud account differs from the local one; sync skipped');
                             apiClearToken();
+                            cloudSync.code = 'conflict'; cloudSync.toasted = 'conflict'; renderSyncStatus();
                             try { showToast(t('accountConflict'), 'error'); } catch (e) {}
                             return;
                         }
@@ -5249,6 +5256,19 @@
                 accountConflict: 'This device holds a different account for this e-mail. Your cloud records were left untouched. Clear this site\u2019s data in the browser, then sign in again.',
                 saveFailedNotice: 'This change could not be saved on this device. Please sign in again and retry.',
                 recordsUnreadable: 'Saved records on this device could not be read. Saving is paused so nothing is overwritten. Sign out and sign in again, or restore a backup.',
+                syncTitle: 'Cloud sync',
+                syncNow: 'Sync now',
+                syncWorking: 'Syncing…',
+                syncOk: 'Up to date · {n}',
+                syncNever: 'Not synced yet on this device.',
+                syncOffline: 'No internet. Your changes stay on this device and will sync when you are back online.',
+                syncAuth: 'Your cloud session has ended. Sign out, then sign in again with your password.',
+                syncDenied: 'The cloud refused to save (permission denied). Your records are safe on this device.',
+                syncTooLarge: 'The cloud copy is too large to save. Your records are safe on this device.',
+                syncConflict: 'This device holds a different account for this e-mail, so syncing is paused to protect your cloud records. Export a backup, clear this site\u2019s data, then sign in again.',
+                syncNoToken: 'Not connected to the cloud. Sign out, then sign in with your password (not the PIN).',
+                syncError: 'Sync problem (code {n}). Your records are safe on this device.',
+                syncPulled: 'Updated from your other devices',
                 recordsInVault: 'Your records now live in the on-device vault',
                 oldRecordsCleared: 'Old records could not be decrypted and were cleared.',
                 needUsernameFirst: 'Enter your username first.',
@@ -5641,6 +5661,19 @@
                 accountConflict: 'Cet appareil contient un autre compte pour cet e-mail. Vos données cloud n’ont pas été modifiées. Effacez les données de ce site dans le navigateur, puis reconnectez-vous.',
                 saveFailedNotice: 'Cette modification n’a pas pu être enregistrée sur cet appareil. Reconnectez-vous et réessayez.',
                 recordsUnreadable: 'Les dossiers enregistrés sur cet appareil sont illisibles. L’enregistrement est suspendu pour ne rien écraser. Déconnectez-vous puis reconnectez-vous, ou restaurez une sauvegarde.',
+                syncTitle: 'Synchronisation cloud',
+                syncNow: 'Synchroniser',
+                syncWorking: 'Synchronisation…',
+                syncOk: 'À jour · {n}',
+                syncNever: 'Pas encore synchronisé sur cet appareil.',
+                syncOffline: 'Pas de connexion. Vos modifications restent sur cet appareil et seront synchronisées au retour du réseau.',
+                syncAuth: 'Votre session cloud a expiré. Déconnectez-vous, puis reconnectez-vous avec votre mot de passe.',
+                syncDenied: 'Le cloud a refusé l’enregistrement (permission refusée). Vos dossiers sont en sécurité sur cet appareil.',
+                syncTooLarge: 'La copie cloud est trop volumineuse pour être enregistrée. Vos dossiers sont en sécurité sur cet appareil.',
+                syncConflict: 'Cet appareil contient un autre compte pour cet e-mail : la synchronisation est suspendue pour protéger vos données cloud. Exportez une sauvegarde, effacez les données de ce site, puis reconnectez-vous.',
+                syncNoToken: 'Non connecté au cloud. Déconnectez-vous, puis reconnectez-vous avec votre mot de passe (pas le PIN).',
+                syncError: 'Problème de synchronisation (code {n}). Vos dossiers sont en sécurité sur cet appareil.',
+                syncPulled: 'Mis à jour depuis vos autres appareils',
                 recordsInVault: 'Vos dossiers sont maintenant dans le coffre de l’appareil',
                 oldRecordsCleared: 'Les anciens dossiers n’ont pas pu être déchiffrés et ont été effacés.',
                 needUsernameFirst: 'Saisissez d’abord votre nom d’utilisateur.',
@@ -6030,10 +6063,23 @@
 
                 // ---- runtime messages that used to be hardcoded English ----
                 storageFull: 'Ububiko bwuzuye — korana dosiye y’umukororombyra wandikwe maze urekure umwanya. Amakuru mashya ashobora kutabikwa.',
-                emailAlreadyRegistered: 'This e-mail already has a PClinic account. Tap "Sign in" and use the same e-mail and password. Creating it again would overwrite your cloud records.',
-                accountConflict: 'This device holds a different account for this e-mail. Your cloud records were left untouched. Clear this site\u2019s data in the browser, then sign in again.',
-                saveFailedNotice: 'This change could not be saved on this device. Please sign in again and retry.',
-                recordsUnreadable: 'Saved records on this device could not be read. Saving is paused so nothing is overwritten. Sign out and sign in again, or restore a backup.',
+                emailAlreadyRegistered: 'Iyi meyili isanzwe ifite konti ya PClinic. Kanda « Kwinjira » ukoreshe meyili n’ijambo ry’ibanga bimwe. Kuyihanga bundi bushya byasiba amakuru yawe yo kuri interineti.',
+                accountConflict: 'Iki gikoresho gifite konti itandukanye n’iyi meyili. Amakuru yawe yo kuri interineti ntiyakozweho. Siba amakuru y’uru rubuga muri browser, hanyuma wongere winjire.',
+                saveFailedNotice: 'Iri hinduka ntiryabashije kubikwa kuri iki gikoresho. Ongera winjire, ugerageze.',
+                recordsUnreadable: 'Amadosiye yabitswe kuri iki gikoresho ntiyashoboye gusomwa. Kubika byahagaritswe kugira ngo hatagira icyandikwaho. Sohoka maze wongere winjire, cyangwa usubizemo kopi y’ububiko.',
+                syncTitle: 'Guhuza amakuru',
+                syncNow: 'Huza ubu',
+                syncWorking: 'Birahuzwa…',
+                syncOk: 'Byahujwe · {n}',
+                syncNever: 'Nta guhuza kurakorwa kuri iki gikoresho.',
+                syncOffline: 'Nta interineti. Impinduka zawe zibitswe kuri iki gikoresho kandi zizahuzwa interineti nigaruka.',
+                syncAuth: 'Uburenganzira bwo kugera ku bubiko bwo kuri interineti bwarangiye. Sohoka, hanyuma wongere winjire ukoresheje ijambo ry’ibanga.',
+                syncDenied: 'Ububiko bwo kuri interineti bwanze kubika (nta ruhushya). Amadosiye yawe afite umutekano kuri iki gikoresho.',
+                syncTooLarge: 'Kopi yo kuri interineti ni nini cyane ku buryo itabikwa. Amadosiye yawe afite umutekano kuri iki gikoresho.',
+                syncConflict: 'Iki gikoresho gifite konti itandukanye n’iyi meyili, bityo guhuza byahagaritswe kugira ngo amakuru yawe adahungabana. Manura kopi y’ububiko, usibe amakuru y’uru rubuga, hanyuma wongere winjire.',
+                syncNoToken: 'Ntiwahujwe n’ububiko bwo kuri interineti. Sohoka, hanyuma winjire ukoresheje ijambo ry’ibanga (si PIN).',
+                syncError: 'Ikibazo cyo guhuza (kode {n}). Amadosiye yawe afite umutekano kuri iki gikoresho.',
+                syncPulled: 'Byavuguruwe biturutse ku bindi bikoresho byawe',
                 recordsInVault: 'Amadosiye yawo ubu ari mu karongo k’iyi telefone',
                 oldRecordsCleared: 'Amadosiye ya kera ntiyashoboye gusomwa bityo iriswa.',
                 needUsernameFirst: 'Mbanze wandikize izina ry’ukoresha.',
@@ -6532,48 +6578,6 @@
             return true;
         }
 
-        // Android vault mode: keep the cloud replica in step with the vault.
-        // Older builds never uploaded patients, so the web saw an empty list.
-        // Pull the cloud list, merge by patient id (newest edit wins), then push
-        // the merged list. Never pushes an empty list over cloud data.
-        function syncVaultWithCloud() {
-            if (window.__vaultMode !== 'fs' || !sessionDEK || !currentUser || !apiEnabled() || !apiToken()) {
-                return Promise.resolve(false);
-            }
-            var key = getPatientKey(), dek = sessionDEK, uid = currentUser.id;
-            return apiGetData().then(function (res) {
-                if (!res || !res.ok) return false;            // offline / denied: retry next time
-                var remote = res.blobs && res.blobs[key] ? res.blobs[key].data : null;
-                var readRemote = remote ? decryptJSON(dek, remote).catch(function () { return undefined; })
-                                        : Promise.resolve(null);
-                return readRemote.then(function (cloudList) {
-                    if (cloudList === undefined) {                 // cloud copy exists but our key cannot read it
-                        console.warn('cloud patient list is unreadable with this key; push skipped');
-                        try { showToast(t('accountConflict'), 'error'); } catch (e) {}
-                        return false;
-                    }
-                    if (!currentUser || currentUser.id !== uid) return false;   // user changed meanwhile
-                    var changed = false;
-                    if (Array.isArray(cloudList)) {
-                        var byId = {};
-                        patients.forEach(function (p) { byId[p.id] = p; });
-                        cloudList.forEach(function (c) {
-                            if (!c || c.id === undefined || c.id === null) return;
-                            var l = byId[c.id];
-                            if (!l) { patients.push(c); changed = true; }
-                            else if (String(c.updatedAt || '') > String(l.updatedAt || '')) {
-                                patients[patients.indexOf(l)] = c; changed = true;
-                            }
-                        });
-                    }
-                    if (changed) { try { renderQueue(); } catch (e) {} }
-                    if (!patients.length) return false;
-                    Vault.schedule(patients);                    // vault + mirror + Drive + cloud push
-                    return true;
-                });
-            }).catch(function (e) { console.warn('vault cloud sync failed', e); return false; });
-        }
-
         function addPatient(data) {
             var phone = (data.phone || '').trim();
             var p = {
@@ -6629,6 +6633,8 @@
             var name = p ? p.name : t('unknown');
             var refs = collectMediaRefs(p ? p.media : []);
             patients = patients.filter(function(p) { return p.id !== id; });
+            tombstones[String(id)] = new Date().toISOString();   // so the cloud merge does not bring it back
+            saveTombstones();
             savePatients();
             if (refs.length) MediaStore.removeMany(refs);
             rebuildMediaIndex();
@@ -6902,6 +6908,7 @@
             showSavingPill(false);
             // 1. In-memory data belonging to the previous account
             patients = [];
+            tombstones = {};
             clearMediaUrlCache();     // free decrypted photo/video blobs
             mediaIndex = {};
             currentPatientId = null;
@@ -7002,6 +7009,7 @@
                 .then(function() { return Vault.migrate(); })
                 .then(loadActivitiesFromStore)
                 .then(loadCatalogFromStore)
+                .then(loadTombstones)
                 .then(function() {
                     rebuildMediaIndex();
                     loadCatalog(); // custom hospitals/diagnoses + frequency ranking
@@ -7021,7 +7029,8 @@
                         driveSyncMedia().catch(function (e) { console.warn('drive media sync failed', e); });
                     }
                     setTimeout(showFirstTimeHelp, 1200);
-                    setTimeout(function () { syncVaultWithCloud(); }, 1500);
+                    startCloudSyncLoop();
+                    requestCloudSync(300);          // sign-in, unlock and app start all land here
                     lastActivityAt = Date.now();
                     refreshProfileSecurity();
                     return true;
@@ -7054,6 +7063,7 @@
                 apiLogout().catch(function() {});
             }
             apiClearToken();
+            cloudSync.code = ''; cloudSync.lastOkAt = 0; cloudSync.toasted = '';
             fabBtn.style.display = 'none';
             loginForm.reset();
             registerForm.reset();
@@ -7113,7 +7123,7 @@
                             return;
                         }
                         if (!confirm(t('confirmReplaceAll').replace('{n}', data.patients.length))) return;
-                        patients = data.patients;
+                        replacePatientList(data.patients);
                         savePatients();
                         renderQueue();
                         showToast(t('restoredCount').replace('{n}', patients.length), 'success');
@@ -8482,6 +8492,9 @@
         // Push one encrypted blob to the server. Offline/failure -> queued.
         var syncTimers = {};
         function syncPush(key, blob, userId) {
+            // Patient records and delete markers are never pushed blindly: they go through
+            // the merge in cloudSyncOnce(), so one device can never erase another's patients.
+            if (isPatientSyncKey(key)) { requestCloudSync(800); return; }
             if (!apiEnabled() || !apiToken() || !userId) return;
             if (syncTimers[key]) clearTimeout(syncTimers[key]);
             syncTimers[key] = setTimeout(function() {
@@ -8505,7 +8518,10 @@
         // Flush queued pushes (on 'online' and after sign-in).
         function flushSyncQueue() {
             if (!apiEnabled() || !apiToken()) return Promise.resolve();
-            var q = loadSyncQueue();
+            // Older builds queued whole patient lists; replaying one would overwrite newer
+            // cloud data, so those entries are discarded (the merge handles patients now).
+            var q = loadSyncQueue().filter(function(item) { return !isPatientSyncKey(item.key); });
+            saveSyncQueue(q);
             if (!q.length) return Promise.resolve();
             var chain = Promise.resolve();
             q.forEach(function(item) {
@@ -8530,6 +8546,7 @@
                 if (!res.ok || !res.blobs) return;
                 var times = loadSyncTimes(user.id);
                 Object.keys(res.blobs).forEach(function(key) {
+                    if (isPatientSyncKey(key)) return;      // merged by cloudSyncOnce(), never replaced
                     var remote = res.blobs[key];
                     var localAt = times[key] || '';
                     var remoteAt = remote.updatedAt || '';
@@ -8579,6 +8596,301 @@
 
         // Retry queued pushes whenever connectivity returns.
         window.addEventListener('online', function() { flushSyncQueue(); });
+
+        // ============================================================================
+        //  CLOUD SYNC OF PATIENT RECORDS (merge by patient, never overwrite a list)
+        //  Every device keeps its own full copy. A sync reads the cloud copy, merges
+        //  it with this device patient by patient (newest edit wins, deletions are
+        //  remembered so they do not come back), and writes the merged list only when
+        //  it differs. The write carries the document version it was based on, so two
+        //  devices saving at the same moment can never silently erase each other.
+        //  It runs after every save, when the app opens or unlocks, when it comes
+        //  back to the foreground, when the network returns, and every 45 seconds.
+        // ============================================================================
+        var DATA_KEY_PREFIX = 'pclinic_data_';
+        var TOMB_KEY_PREFIX = 'pclinic_tomb_';
+        var tombstones = {};                         // patient id -> ISO time it was deleted
+        var cloudSync = { running: false, again: false, timer: null, loop: null, ui: false,
+                          lastOkAt: 0, code: '', detail: '', toasted: '' };
+
+        function isPatientSyncKey(key) {
+            key = String(key || '');
+            return key.indexOf(DATA_KEY_PREFIX) === 0 || key.indexOf(TOMB_KEY_PREFIX) === 0;
+        }
+        function tombKey() { return TOMB_KEY_PREFIX + currentUser.id; }
+
+        function patientStamp(p) { return String((p && (p.updatedAt || p.createdAt)) || ''); }
+        // Of two copies of one patient, the most recently edited wins. Equal stamps
+        // fall back to a fixed order so two devices always agree on the same winner.
+        function newerPatient(a, b) {
+            var sa = patientStamp(a), sb = patientStamp(b);
+            if (sa !== sb) return sa > sb ? a : b;
+            return JSON.stringify(a) >= JSON.stringify(b) ? a : b;
+        }
+        function tombListToMap(list) {
+            var map = {};
+            (Array.isArray(list) ? list : []).forEach(function(x) {
+                if (x && x.id !== undefined && x.at) map[String(x.id)] = String(x.at);
+            });
+            return map;
+        }
+        function tombMapToList(map) {
+            var cutoff = new Date(Date.now() - 365 * 86400000).toISOString();
+            return Object.keys(map).filter(function(id) { return map[id] >= cutoff; })
+                .sort().map(function(id) { return { id: id, at: map[id] }; });
+        }
+        function mergeTombMaps(a, b) {
+            var out = {};
+            [a, b].forEach(function(m) {
+                Object.keys(m || {}).forEach(function(id) {
+                    if (!out[id] || m[id] > out[id]) out[id] = m[id];
+                });
+            });
+            return out;
+        }
+        function mergePatientLists(listA, listB, tombs) {
+            var map = {}, loose = [];
+            [listA, listB].forEach(function(list) {
+                (Array.isArray(list) ? list : []).forEach(function(p) {
+                    if (!p || typeof p !== 'object') return;
+                    if (p.id === undefined || p.id === null) { loose.push(p); return; }
+                    var k = String(p.id);
+                    map[k] = map[k] ? newerPatient(map[k], p) : p;
+                });
+            });
+            var out = [];
+            Object.keys(map).forEach(function(k) {
+                var gone = tombs && tombs[k];
+                if (gone && gone >= patientStamp(map[k])) return;   // deleted after its last edit
+                out.push(map[k]);
+            });
+            out.sort(function(a, b) {
+                var ca = String(a.createdAt || ''), cb = String(b.createdAt || '');
+                if (ca !== cb) return ca < cb ? 1 : -1;
+                return String(a.id) < String(b.id) ? 1 : -1;
+            });
+            return out.concat(loose);
+        }
+        function sigOf(x) { try { return JSON.stringify(x); } catch (e) { return ''; } }
+
+        function loadTombstones() {
+            if (!currentUser) return Promise.resolve();
+            return secureGet(tombKey(), []).then(function(list) { tombstones = tombListToMap(list); });
+        }
+        function saveTombstones() {
+            if (!currentUser) return;
+            secureSet(tombKey(), tombMapToList(tombstones));
+        }
+        // Restore-from-backup replaces the list on purpose: remember what it removed,
+        // and make the restored copy count as the newest edit so it is not undone.
+        function replacePatientList(newList) {
+            var now = new Date().toISOString(), keep = {}, current = {};
+            patients.forEach(function(p) { if (p) current[String(p.id)] = p; });
+            newList.forEach(function(p) {
+                if (!p) return;
+                keep[String(p.id)] = true;
+                var cur = current[String(p.id)];
+                if (cur && sigOf(cur) !== sigOf(p)) p.updatedAt = now;
+            });
+            Object.keys(current).forEach(function(id) { if (!keep[id]) tombstones[id] = now; });
+            saveTombstones();
+            patients = newList;
+        }
+
+        // ---- status the person can see (profile > Cloud sync) ----
+        var SYNC_STATUS_KEYS = {
+            never: 'syncNever', offline: 'syncOffline', auth: 'syncAuth', denied: 'syncDenied',
+            tooLarge: 'syncTooLarge', conflict: 'syncConflict', noToken: 'syncNoToken',
+            working: 'syncWorking'
+        };
+        function syncStatusText() {
+            var code = cloudSync.code || (cloudSync.lastOkAt ? 'ok' : 'never');
+            if (code === 'ok') {
+                var when = new Date(cloudSync.lastOkAt || Date.now())
+                    .toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                return t('syncOk').replace('{n}', when);
+            }
+            if (code === 'error') return t('syncError').replace('{n}', cloudSync.detail || '?');
+            return t(SYNC_STATUS_KEYS[code] || 'syncNever');
+        }
+        function renderSyncStatus() {
+            var el = document.getElementById('cloudSyncStatus');
+            if (el) el.textContent = syncStatusText();
+        }
+        function setSyncStatus(code, detail) {
+            cloudSync.code = code;
+            cloudSync.detail = detail || '';
+            if (code === 'ok') { cloudSync.lastOkAt = Date.now(); cloudSync.toasted = ''; }
+            renderSyncStatus();
+            // Say it once when a problem appears; the profile screen keeps saying it.
+            var loud = code !== 'ok' && code !== 'working' && code !== 'offline' && code !== 'never';
+            if (loud && cloudSync.toasted !== code) {
+                cloudSync.toasted = code;
+                try { showToast(syncStatusText(), 'error'); } catch (e) {}
+            }
+        }
+        function failSync(res) {
+            var s = res ? res._status : 0, text = '';
+            try { text = JSON.stringify(res && res.error || ''); } catch (e) {}
+            if (s === 0) setSyncStatus('offline');
+            else if (s === 401) setSyncStatus('auth');
+            else if (s === 403) setSyncStatus('denied');
+            else if (s === 400 && /longer than|too large|exceeds/i.test(text)) setSyncStatus('tooLarge');
+            else setSyncStatus('error', String(s || '?'));
+            return { ok: false };
+        }
+
+        // ---- cloud documents ----
+        function readSyncDoc(key) {
+            return fbStore('GET', syncDocPath(key)).then(function(res) {
+                if (res._status === 404) return { ok: true, exists: false, data: null, updateTime: '' };
+                if (!res.ok) return { ok: false, _status: res._status, error: res.error };
+                var payload = res.fields && res.fields.payload && res.fields.payload.stringValue;
+                var data = null;
+                if (payload) {
+                    try { data = JSON.parse(payload); }
+                    catch (e) { return { ok: false, _status: -1, error: 'badPayload' }; }
+                }
+                return { ok: true, exists: true, data: data, updateTime: res.updateTime || '' };
+            });
+        }
+        // Write one document only if nobody changed it since we read it.
+        function writeSyncDoc(key, blob, doc) {
+            var updatedAt = new Date().toISOString();
+            var guard = doc && doc.exists && doc.updateTime
+                ? '&currentDocument.updateTime=' + encodeURIComponent(doc.updateTime)
+                : '&currentDocument.exists=false';
+            return fbStore('PATCH',
+                syncDocPath(key) + '?updateMask.fieldPaths=payload&updateMask.fieldPaths=updatedAt' + guard, {
+                    fields: {
+                        payload: { stringValue: JSON.stringify(blob) },
+                        updatedAt: { stringValue: updatedAt }
+                    }
+                }).then(function(res) {
+                var text = '';
+                try { text = JSON.stringify(res.error || ''); } catch (e) {}
+                return { ok: !!res.ok, _status: res._status, error: res.error, updatedAt: updatedAt,
+                         conflict: !res.ok && /FAILED_PRECONDITION|ABORTED|ALREADY_EXISTS/.test(text) };
+            });
+        }
+        function openSyncDoc(dek, doc) {
+            if (!doc.data) return Promise.resolve([]);
+            return decryptJSON(dek, doc.data).then(function(v) { return Array.isArray(v) ? v : []; })
+                .catch(function() { return undefined; });          // exists, but this key cannot read it
+        }
+
+        function cloudSyncOnce(attempt) {
+            if (!apiEnabled() || !currentUser || !sessionDEK || isLocked()) return Promise.resolve({ skipped: true });
+            var key = getPatientKey();
+            if (window.__decryptFailed && window.__decryptFailed[key]) return Promise.resolve({ skipped: true });
+            if (!apiToken()) {
+                if (cloudSync.code !== 'conflict') setSyncStatus('noToken');
+                return Promise.resolve({ ok: false });
+            }
+            var uid = currentUser.id, dek = sessionDEK, tkey = tombKey();
+            return Promise.all([readSyncDoc(key), readSyncDoc(tkey)]).then(function(docs) {
+                var dp = docs[0], dt = docs[1];
+                if (!dp.ok) return failSync(dp);
+                if (!dt.ok) return failSync(dt);
+                return Promise.all([openSyncDoc(dek, dp), openSyncDoc(dek, dt)]).then(function(open) {
+                    var remoteList = open[0], remoteTombList = open[1];
+                    if (remoteList === undefined || remoteTombList === undefined) {
+                        console.warn('cloud records are unreadable with this key; sync paused');
+                        setSyncStatus('conflict');
+                        return { ok: false };
+                    }
+                    if (!currentUser || currentUser.id !== uid || sessionDEK !== dek) return { skipped: true };
+
+                    // ---- merge (all synchronous, so nothing can slip in between) ----
+                    var remoteTombs = tombListToMap(remoteTombList);
+                    var tombs = mergeTombMaps(tombstones, remoteTombs);
+                    var localBefore = sigOf(patients);
+                    var merged = mergePatientLists(patients, remoteList, tombs);
+                    var tombsChangedLocal = sigOf(tombMapToList(tombs)) !== sigOf(tombMapToList(tombstones));
+                    var listChangedLocal = sigOf(merged) !== localBefore;
+                    var incoming = 0;
+                    if (listChangedLocal) {
+                        var had = {};
+                        patients.forEach(function(p) { if (p) had[String(p.id)] = sigOf(p); });
+                        merged.forEach(function(p) { if (had[String(p.id)] !== sigOf(p)) incoming++; });
+                    }
+                    tombstones = tombs;
+                    if (listChangedLocal) {
+                        patients = merged;
+                        try { rebuildMediaIndex(); renderQueue(); updateActivityBadge(); } catch (e) {}
+                        savePatients();                         // keep this device's own copy current
+                    }
+                    if (tombsChangedLocal) saveTombstones();
+                    if (incoming > 0) { try { showToast(t('syncPulled'), 'info'); } catch (e) {} }
+
+                    // ---- write back only what the cloud is missing ----
+                    var needList = (dp.exists || merged.length > 0) &&
+                        sigOf(mergePatientLists(remoteList, [], {})) !== sigOf(merged);
+                    var tombList = tombMapToList(tombs);
+                    var needTombs = tombList.length > 0 &&
+                        sigOf(tombMapToList(remoteTombs)) !== sigOf(tombList);
+                    var chain = Promise.resolve({ ok: true });
+                    if (needList) {
+                        chain = encryptJSON(dek, merged).then(function(blob) { return writeSyncDoc(key, blob, dp); });
+                    }
+                    return chain.then(function(r1) {
+                        if (!r1.ok) return r1;
+                        if (r1.updatedAt) {
+                            var times = loadSyncTimes(uid); times[key] = r1.updatedAt; saveSyncTimes(uid, times);
+                        }
+                        if (!needTombs) return r1;
+                        return encryptJSON(dek, tombList).then(function(blob) { return writeSyncDoc(tkey, blob, dt); });
+                    }).then(function(r) {
+                        if (r.ok) { setSyncStatus('ok'); return { ok: true }; }
+                        if (r.conflict && attempt < 3) return cloudSyncOnce(attempt + 1);   // someone saved meanwhile: merge again
+                        return failSync(r);
+                    });
+                });
+            }).catch(function(e) {
+                console.warn('cloud sync failed', e);
+                setSyncStatus('error', 'js');
+                return { ok: false };
+            });
+        }
+
+        function runCloudSync() {
+            if (cloudSync.running) { cloudSync.again = true; return Promise.resolve(false); }
+            cloudSync.running = true;
+            return cloudSyncOnce(0).then(function(r) { return r; }, function() { return { ok: false }; })
+                .then(function(r) {
+                    cloudSync.running = false;
+                    if (cloudSync.again) { cloudSync.again = false; requestCloudSync(250); }
+                    return !!(r && r.ok);
+                });
+        }
+        function requestCloudSync(delay) {
+            if (!apiEnabled()) return;
+            if (cloudSync.timer) clearTimeout(cloudSync.timer);
+            cloudSync.timer = setTimeout(function() { cloudSync.timer = null; runCloudSync(); },
+                delay === undefined ? 800 : delay);
+        }
+        function startCloudSyncLoop() {
+            if (!cloudSync.ui) {
+                cloudSync.ui = true;
+                var btn = document.getElementById('cloudSyncNowBtn');
+                if (btn) btn.addEventListener('click', function() {
+                    setSyncStatus('working');
+                    requestCloudSync(0);
+                });
+                document.addEventListener('visibilitychange', function() {
+                    if (document.visibilityState === 'visible' && currentUser && !isLocked()) requestCloudSync(300);
+                });
+                window.addEventListener('online', function() {
+                    if (currentUser && !isLocked()) requestCloudSync(300);
+                });
+            }
+            if (!cloudSync.loop) {
+                cloudSync.loop = setInterval(function() {
+                    if (document.visibilityState === 'hidden' || !currentUser || isLocked()) return;
+                    requestCloudSync(0);
+                }, 45000);
+            }
+        }
 
         function getSavedBackupEmail() {
             try { return localStorage.getItem('pclinic_backup_email_' + (currentUser ? currentUser.id : '')) || ''; }
@@ -10006,6 +10318,7 @@
                     profileUsername.textContent = currentUser.username;
                     profileUserId.textContent = t('idLabel') + currentUser.id;
                     profileCreated.textContent = t('createdLabel') + new Date(currentUser.createdAt).toLocaleDateString();
+                    renderSyncStatus();
                     profileCurrentPass.value = '';
                     profileNewPass.value = '';
                     profileConfirmPass.value = '';
