@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; media-src 'self' blob:; font-src 'self' data:; connect-src 'self' https://api.emailjs.com https://us-central1-pclinic-20d81.cloudfunctions.net https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://firestore.googleapis.com; child-src 'self' blob:; frame-src 'self' blob:; object-src 'none'; base-uri 'self'; form-action 'self';">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://accounts.google.com; style-src 'self' 'unsafe-inline' https://accounts.google.com; img-src 'self' data: blob:; media-src 'self' blob:; font-src 'self' data:; connect-src 'self' https://api.emailjs.com https://us-central1-pclinic-20d81.cloudfunctions.net https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://firestore.googleapis.com https://accounts.google.com; child-src 'self' blob:; frame-src 'self' blob: https://accounts.google.com; object-src 'none'; base-uri 'self'; form-action 'self';">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=2.0, user-scalable=yes">
     <title>PClinic Pro - Drive Backup</title>
     <meta name="apple-mobile-web-app-capable" content="yes">
@@ -1976,6 +1976,17 @@
                 </div>
 
                 <div id="loginPanel" class="ios-auth-panel active">
+                    <div id="googleAuthWrap" class="pcl-hidden" style="margin-bottom:14px;">
+                        <div id="googleNativeSlot">
+                            <button type="button" id="googleNativeBtn" class="ios-btn ios-btn-secondary ios-btn-block" data-i18n="googleContinue">Continue with Google</button>
+                        </div>
+                        <div id="googleWebSlot"></div>
+                        <div style="display:flex;align-items:center;gap:10px;margin:12px 0 2px;color:var(--ios-tertiary-label);font-size:11px;">
+                            <span style="flex:1;height:1px;background:var(--ios-separator,#e5e5ea);"></span>
+                            <span data-i18n="googleOr">or use your account</span>
+                            <span style="flex:1;height:1px;background:var(--ios-separator,#e5e5ea);"></span>
+                        </div>
+                    </div>
                     <form id="loginForm" novalidate>
                         <div class="ios-form-group">
                             <div class="ios-input-wrap">
@@ -2404,24 +2415,6 @@
                 <button type="button" class="ios-btn ios-btn-secondary" id="cameraVideoSwitchBtn">Switch</button>
                 <button type="button" class="ios-btn ios-btn-danger" id="cameraRecordBtn" style="background:var(--ios-red);color:#fff;">● Record</button>
             </div>
-        </div>
-    </div>
-
-    <!-- BACKUP REMINDER MODAL -->
-    <div class="ios-modal-overlay" id="backupReminderModal" role="dialog" aria-modal="true">
-        <div class="ios-modal">
-            <div class="ios-modal-handle"></div>
-            <div class="ios-confirm-icon">💾</div>
-            <div class="ios-modal-title" data-i18n="backupReminderTitle">Back Up Your Patient Data</div>
-            <p class="ios-confirm-text" id="backupReminderText">It's been a while since your last backup. Export a file and/or email a lite backup so you can restore after reinstall.</p>
-            <div class="ios-form-group" style="margin-bottom:10px;">
-                <input type="email" class="ios-form-input" id="backupReminderEmail" placeholder="Email for backup (optional)" data-i18n-placeholder="backupEmailPh">
-            </div>
-            <div class="ios-form-actions" style="grid-template-columns:1fr 1fr;">
-                <button type="button" class="ios-btn ios-btn-secondary" id="backupReminderLaterBtn" data-i18n="remindLater">Remind Me Later</button>
-                <button type="button" class="ios-btn ios-btn-primary" id="backupReminderExportBtn">💾 Export File</button>
-            </div>
-            <button type="button" class="ios-btn ios-btn-primary" id="backupReminderEmailBtn" style="width:100%;margin-top:8px;">📧 Export + Email Backup</button>
         </div>
     </div>
 
@@ -2975,6 +2968,10 @@
                 <div class="ios-auth-error" id="lockError"></div>
             </form>
 
+            <div class="pcl-lock-links" id="lockOtherRow" style="display:none;">
+                <button type="button" id="lockOtherBtn" class="pcl-link" data-i18n="lockUsePassword">Use password instead</button>
+            </div>
+
             <div class="pcl-lock-links">
                 <button type="button" id="lockForgotBtn" class="pcl-link" data-i18n="lockForgot">Forgot password?</button>
                 <span class="pcl-dot">·</span>
@@ -2998,6 +2995,20 @@
             <div class="ios-form-actions" style="margin-top:12px;">
                 <button class="ios-btn ios-btn-primary" id="recCodeDoneBtn" style="flex:1;" data-i18n="recCodeDone">I have saved it</button>
             </div>
+        </div>
+    </div>
+
+    <!-- ==================== PIN SETUP (Google accounts) ==================== -->
+    <div class="ios-modal-overlay" id="pinSetupModal" role="dialog" aria-modal="true">
+        <div class="ios-modal">
+            <div class="ios-modal-handle"></div>
+            <div class="ios-modal-icon">🔒</div>
+            <div class="ios-modal-title" data-i18n="pinSetupTitle">Choose a 4-digit PIN</div>
+            <p class="ios-confirm-text" data-i18n="pinSetupText">You type this PIN every time you open PClinic. It unlocks your records on this and any other device.</p>
+            <input type="password" class="ios-form-input" id="pinSetupNew" inputmode="numeric" maxlength="12" autocomplete="off" placeholder="4-digit PIN" data-i18n-placeholder="pinSetupPh">
+            <input type="password" class="ios-form-input" id="pinSetupNew2" inputmode="numeric" maxlength="12" autocomplete="off" placeholder="Confirm PIN" data-i18n-placeholder="pinSetupPh2" style="margin-top:8px;">
+            <div class="ios-auth-error" id="pinSetupError"></div>
+            <button type="button" class="ios-btn ios-btn-primary ios-btn-block" id="pinSetupSaveBtn" style="margin-top:10px;" data-i18n="pinSetupSave">Save PIN</button>
         </div>
     </div>
 
@@ -3459,6 +3470,11 @@
         }
         function setLockMs(ms) { try { localStorage.setItem(lockPrefKey('_ms'), String(ms)); } catch (e) {} }
         function requireUnlockOnOpen() {
+            // An account with a PIN is always asked for it on a cold start: the
+            // PIN is the sign-in the user is meant to remember. The preference
+            // below only matters for password-only accounts.
+            var u = currentUser || lockedUser;
+            if (u && hasPin(u)) return true;
             return localStorage.getItem(lockPrefKey('_open')) !== '0';   // default: on
         }
         function setRequireUnlockOnOpen(on) {
@@ -3467,10 +3483,52 @@
         function isLocked() { return lockedUser !== null; }
 
         var lockScreenEl = null, lockPassEl = null, lockUserEl = null, lockErrorEl = null, lockNoteEl = null;
+        // false => the lock screen asks for the PIN; true => the user asked for the
+        // password field instead. Reset on every fresh lock.
+        var lockUsePassword = false;
+
+        function lockCanUsePassword() {
+            var u = lockedUser;
+            return !!(u && ((u.pw && u.pw.v === 2) || u.passHash));
+        }
+        function lockPinMode() {
+            var u = lockedUser;
+            if (!u || !hasPin(u)) return false;
+            return !lockUsePassword || !lockCanUsePassword();
+        }
+
+        function applyLockMode() {
+            var pinMode = lockPinMode();
+            var pinAccount = !!(lockedUser && hasPin(lockedUser));
+            if (lockPassEl) {
+                lockPassEl.value = '';
+                lockPassEl.setAttribute('inputmode', pinMode ? 'numeric' : 'text');
+                lockPassEl.setAttribute('autocomplete', pinMode ? 'off' : 'current-password');
+                var phKey = pinMode ? 'lockPinPh' : 'lockPasswordPh';
+                lockPassEl.setAttribute('data-i18n-placeholder', phKey);
+                lockPassEl.setAttribute('placeholder', t(phKey));
+            }
+            var otherRow = document.getElementById('lockOtherRow');
+            var otherBtn = document.getElementById('lockOtherBtn');
+            if (otherRow) otherRow.style.display = (pinAccount && lockCanUsePassword()) ? '' : 'none';
+            if (otherBtn) {
+                var otherKey = pinMode ? 'lockUsePassword' : 'lockUsePin';
+                otherBtn.setAttribute('data-i18n', otherKey);
+                otherBtn.textContent = t(otherKey);
+            }
+            var lf = document.getElementById('lockForgotBtn');
+            if (lf) {
+                var fk = pinAccount ? 'lockPinForgot' : 'lockForgot';
+                lf.setAttribute('data-i18n', fk);
+                lf.textContent = t(fk);
+            }
+            if (lockErrorEl) lockErrorEl.textContent = '';
+        }
 
         function lockApp(note) {
             if (!currentUser || isLocked()) return;
             lockedUser = currentUser;
+            lockUsePassword = false;
             sessionDEK = null;                 // drop the decryption key
             resetUserState();                  // scrub memory + DOM (reuses the isolation fix)
             currentUser = null;
@@ -3485,10 +3543,10 @@
             lockErrorEl  = document.getElementById('lockError');
             lockNoteEl   = document.getElementById('lockNote');
             if (!lockScreenEl) return;
+            lockUsePassword = false;
             if (lockUserEl) lockUserEl.textContent = (lockedUser && lockedUser.username) || '';
             if (lockNoteEl) lockNoteEl.textContent = note || '';
-            if (lockErrorEl) lockErrorEl.textContent = '';
-            if (lockPassEl) lockPassEl.value = '';
+            applyLockMode();
             lockScreenEl.style.display = 'flex';
             try { document.body.classList.add('is-locked'); } catch (e) {}
             setTimeout(function() { try { lockPassEl && lockPassEl.focus(); } catch (e) {} }, 120);
@@ -3499,35 +3557,60 @@
             try { document.body.classList.remove('is-locked'); } catch (e) {}
         }
 
-        function unlockApp(password) {
+        // Counts exactly one failed attempt per submitted value, no matter how many
+        // credentials were tried, so the escalating delay is not charged twice.
+        function unlockFail(msg) {
+            noteAuthFailure();
+            if (lockErrorEl) lockErrorEl.textContent = authBusyMessage() || msg || t('wrongPassword');
+            return false;
+        }
+
+        function unlockApp(secret) {
             var u = lockedUser;
             if (!u) return Promise.resolve(false);
-            var wait = authThrottleMs();
-            if (wait > 0) {
+            if (authThrottleMs() > 0) {
                 if (lockErrorEl) lockErrorEl.textContent = authBusyMessage();
                 return Promise.resolve(false);
             }
+            if (lockPinMode()) {
+                return signInWithPin(u, secret).then(function(res) {
+                    if (res.ok) {
+                        noteAuthSuccess();
+                        return finishUnlock(u, secret, true);
+                    }
+                    // A password typed into the PIN field still works.
+                    if (!lockCanUsePassword()) return unlockFail(t('wrongPassword'));
+                    return unlockWithPassword(u, secret, true);
+                });
+            }
+            return unlockWithPassword(u, secret, false);
+        }
+
+        function unlockWithPassword(u, password, pinAlreadyTried) {
             if (u.pw && u.pw.v === 2) {
                 return deriveAccountKeys(password, u.pw.salt, u.pw.iter).then(function(k) {
-                    if (!safeEq(k.verifier, u.pw.hash)) return unlockWithPin(u, password);
-                    noteAuthSuccess();
-                    return unwrapDEK(k.kek, u.dek).then(function(dek) {
-                        sessionDEK = dek;
-                        return finishUnlock(u, password);
-                    });
+                    if (safeEq(k.verifier, u.pw.hash)) {
+                        noteAuthSuccess();
+                        return unwrapDEK(k.kek, u.dek).then(function(dek) {
+                            sessionDEK = dek;
+                            return finishUnlock(u, password);
+                        });
+                    }
+                    if (pinAlreadyTried) return unlockFail(t('wrongPassword'));
+                    return unlockWithPin(u, password);
                 }).catch(function(e) {
                     console.warn('unlock failed', e);
                     if (lockErrorEl) lockErrorEl.textContent = t('couldNotUnlock');
                     return false;
                 });
             }
-            if (!u.pw && hasPin(u)) return unlockWithPin(u, password);
-            // legacy (pre-v2) account: verify then migrate before unlocking
-            if (simpleHash(password) !== u.passHash) {
-                noteAuthFailure();
-                if (lockErrorEl) lockErrorEl.textContent = authBusyMessage() || t('wrongPassword');
-                return Promise.resolve(false);
+            if (!u.pw && hasPin(u)) {
+                return pinAlreadyTried
+                    ? Promise.resolve(unlockFail(t('wrongPassword')))
+                    : unlockWithPin(u, password);
             }
+            // legacy (pre-v2) account: verify then migrate before unlocking
+            if (simpleHash(password) !== u.passHash) return Promise.resolve(unlockFail(t('wrongPassword')));
             noteAuthSuccess();
             return migrateAccount(u, password).then(function(res) {
                 sessionDEK = res.dek;
@@ -3539,18 +3622,9 @@
         }
 
         function unlockWithPin(u, pin) {
-            if (!hasPin(u)) {
-                noteAuthFailure();
-                var extra = authBusyMessage();
-                if (lockErrorEl) lockErrorEl.textContent = extra || t('wrongPassword');
-                return Promise.resolve(false);
-            }
+            if (!hasPin(u)) return Promise.resolve(unlockFail(t('wrongPassword')));
             return signInWithPin(u, pin).then(function(res) {
-                if (!res.ok) {
-                    noteAuthFailure();
-                    if (lockErrorEl) lockErrorEl.textContent = authBusyMessage() || t('wrongPassword');
-                    return false;
-                }
+                if (!res.ok) return unlockFail(t('wrongPassword'));
                 noteAuthSuccess();
                 return finishUnlock(u, pin, true);
             });
@@ -3666,7 +3740,7 @@
         // ============================================================================
         var MediaStore = (function () {
             var MODE = 'unknown';               // 'fs' | 'idb' | 'none'
-            var FS = null, FSDir = null;
+            var FS = null, FSDir = null, DB = null;
             var DIR_NAME = 'pclinic_media';
             var DB_NAME = 'pclinic_media', STORE = 'files';
 
@@ -3842,6 +3916,26 @@
             return (window.Capacitor && Capacitor.Plugins && Capacitor.Plugins.GoogleDrive) || null;
         }
 
+        // True when media bytes may leave the patient record and live only in
+        // the local store. That is only safe when another copy can travel to
+        // other devices — the Drive mirror in the native app. In a plain
+        // browser the inline copy is the only one that syncs, so keep it there.
+        function mediaStoreUsable() {
+            return MediaStore.available() && !!sessionDEK && !!drivePlugin();
+        }
+
+        // File name extension for the Drive copy, from the real MIME type.
+        function driveExtFor(mime) {
+            var m = String(mime || '').toLowerCase();
+            if (m.indexOf('video/') === 0) return m.indexOf('mp4') > -1 ? 'mp4' : 'webm';
+            if (m.indexOf('png') > -1) return 'png';
+            if (m.indexOf('webp') > -1) return 'webp';
+            if (m.indexOf('heic') > -1) return 'heic';
+            if (m.indexOf('heif') > -1) return 'heif';
+            if (m.indexOf('gif') > -1) return 'gif';
+            return 'jpg';
+        }
+
         // Upload one media item's bytes to Drive; returns the Drive file id.
         function driveUploadMedia(item) {
             var G = drivePlugin();
@@ -3854,8 +3948,7 @@
                     : null);
             return bytesP.then(function (bytes) {
                 if (!bytes || !bytes.length) return null;
-                var ext = (item.mime || '').indexOf('video') === 0 ? 'mp4'
-                    : (item.mime || '').indexOf('png') > -1 ? 'png' : 'jpg';
+                var ext = driveExtFor(item.mime);
                 return G.uploadMedia({
                     name: (item.id || 'media') + '.' + ext,
                     mimeType: item.mime || 'application/octet-stream',
@@ -3945,6 +4038,83 @@
             mediaUrlCache = {};
         }
 
+        function b64Bytes(dataUrl) {
+            try {
+                var comma = String(dataUrl || '').indexOf(',');
+                if (comma < 0) return null;
+                return MediaStore.bytesFromB64(String(dataUrl).slice(comma + 1));
+            } catch (e) { return null; }
+        }
+
+        // Raw bytes of the main copy: local store first, then Google Drive.
+        function mainBytesFor(e) {
+            var ref = e.ref;
+            var inline = e.inlineData;
+            var p;
+            if (ref) p = MediaStore.get(ref);
+            else if (inline && String(inline).indexOf('data:') === 0) p = Promise.resolve(b64Bytes(inline));
+            else p = Promise.resolve(null);
+            return p.then(function (bytes) {
+                if ((bytes && bytes.length) || !e.driveId || typeof driveDownloadMedia !== 'function') return bytes;
+                // New device / cleared storage: fetch the bytes from Drive.
+                return driveDownloadMedia(e.driveId).then(function (dl) {
+                    if (!dl || !dl.bytes || !dl.bytes.length) return null;
+                    // Cache locally so the next view is instant.
+                    if (ref && MediaStore.available()) {
+                        return MediaStore.put(ref, dl.bytes).then(function () { return dl.bytes; })
+                            .catch(function () { return dl.bytes; });
+                    }
+                    return dl.bytes;
+                }).catch(function () { return null; });
+            });
+        }
+
+        // Shrink full-size bytes into a list preview.
+        function bytesToThumb(bytes, mime) {
+            return new Promise(function (resolve) {
+                var url = null;
+                try { url = URL.createObjectURL(new Blob([bytes], { type: mime || 'image/jpeg' })); }
+                catch (e) { resolve(null); return; }
+                var img = new Image();
+                var done = false;
+                function finish(out) {
+                    if (done) return;
+                    done = true;
+                    try { URL.revokeObjectURL(url); } catch (x) {}
+                    resolve(out);
+                }
+                img.onload = function () {
+                    var dataUrl = makeThumbFromImg(img, 320, 0.7);
+                    finish(dataUrl ? b64Bytes(dataUrl) : null);
+                };
+                img.onerror = function () { finish(null); };
+                img.src = url;
+            });
+        }
+
+        // List thumbnail: the small local copy when present, otherwise derived
+        // from the main copy (local or Drive) so a new device never downloads a
+        // full-size photo just to show the list.
+        function thumbBytesFor(e) {
+            var tp = e.thumbRef ? MediaStore.get(e.thumbRef)
+                : (e.inlineThumb && String(e.inlineThumb).indexOf('data:') === 0
+                    ? Promise.resolve(b64Bytes(e.inlineThumb)) : Promise.resolve(null));
+            return tp.then(function (tb) {
+                if (tb && tb.length) return { b: tb, jpeg: true };
+                if (e.type !== 'image') return { b: null };
+                return mainBytesFor(e).then(function (mb) {
+                    if (!mb || !mb.length) return { b: null };
+                    return bytesToThumb(mb, e.mime).then(function (small) {
+                        if (!small || !small.length) return { b: mb };
+                        if (e.thumbRef && MediaStore.available()) {
+                            MediaStore.put(e.thumbRef, small).catch(function () {});
+                        }
+                        return { b: small, jpeg: true };
+                    });
+                });
+            });
+        }
+
         // Resolve a media id to something usable in src="". Cached until logout/lock.
         function mediaUrlFor(mid, wantThumb) {
             var e = mediaIndex[mid];
@@ -3952,32 +4122,16 @@
             var key = mid + (wantThumb ? ':thumb' : ':main');
             if (mediaUrlCache[key]) return Promise.resolve(mediaUrlCache[key]);
 
-            var ref = wantThumb ? (e.thumbRef || e.ref) : e.ref;
-            var inline = wantThumb ? (e.inlineThumb || e.inlineData) : e.inlineData;
-            var p;
-            if (ref) p = MediaStore.get(ref);
-            else if (inline && String(inline).indexOf('data:') === 0) {
-                try { p = Promise.resolve(MediaStore.bytesFromB64(String(inline).split(',').slice(1).join(','))); }
-                catch (err) { p = Promise.resolve(null); }
-            } else p = Promise.resolve(null);
-
-            return p.then(function (bytes) {
-                // New device / cleared storage: fetch the bytes from Drive.
-                if ((!bytes || !bytes.length) && e.driveId && typeof driveDownloadMedia === 'function') {
-                    return driveDownloadMedia(e.driveId).then(function (dl) {
-                        if (!dl || !dl.bytes || !dl.bytes.length) return null;
-                        // Cache locally so the next view is instant.
-                        if (ref && MediaStore.available()) {
-                            return MediaStore.put(ref, dl.bytes).then(function () { return dl.bytes; }).catch(function () { return dl.bytes; });
-                        }
-                        return dl.bytes;
-                    }).catch(function () { return null; });
-                }
-                return bytes;
-            }).then(function (bytes) {
+            var p = wantThumb ? thumbBytesFor(e) : mainBytesFor(e);
+            return p.then(function (res) {
+                var bytes = wantThumb ? (res && res.b) : res;
                 if (!bytes || !bytes.length) return '';
-                var mime = e.mime || 'application/octet-stream';
-                if (wantThumb && !e.thumbRef && !e.inlineThumb) mime = e.mime; // full image used as its own thumb
+                var mime;
+                if (wantThumb) {
+                    mime = (res && res.jpeg) ? 'image/jpeg' : (e.mime || 'application/octet-stream');
+                } else {
+                    mime = e.mime || 'application/octet-stream';
+                }
                 var url = URL.createObjectURL(new Blob([bytes], { type: mime }));
                 mediaUrlCache[key] = url;
                 return url;
@@ -4151,7 +4305,7 @@
 
         // One-time move of media that is still inline (base64) out of the record.
         function migrateInlineMedia() {
-            if (!MediaStore.available() || !sessionDEK) return Promise.resolve(0);
+            if (!mediaStoreUsable()) return Promise.resolve(0);
             var jobs = [], changed = false;
             (patients || []).forEach(function (p) {
                 (p.media || []).forEach(function (it) {
@@ -4226,7 +4380,7 @@
                     file: '', thumbFile: '', data: '', thumbnail: ''
                 };
                 var work = [];
-                var canStore = MediaStore.available() && !!sessionDEK;
+                var canStore = mediaStoreUsable();
 
                 if (it.data && String(it.data).indexOf('data:') === 0) {
                     out.mime = out.mime || dataUrlMime(it.data);
@@ -4424,7 +4578,7 @@
         // A PIN is a second credential over the SAME data key, so signing in with
         // either one yields an identical session. It is stored the same way as a
         // password (PBKDF2 verifier + wrapped key) and never in plain text.
-        var PIN_MIN = 4, PIN_RECOMMENDED = 6;
+        var PIN_MIN = 4;
 
         function hasPin(u) { return !!(u && u.pin && u.pin.v === 2 && u.dekPin); }
 
@@ -4580,6 +4734,7 @@
                     var user = {
                         id: rec.id, username: rec.username, email: rec.email,
                         phone: rec.phone || '', createdAt: rec.createdAt,
+                        uid: rec.uid || apiUid(),
                         pw: rec.pw, dek: rec.dek, dekRec: rec.dekRec,
                         recovery: rec.recovery, recCodeEnc: rec.recCodeEnc,
                         pin: rec.pin, dekPin: rec.dekPin
@@ -4657,10 +4812,13 @@
                             return Promise.all(jobs);
                         });
                     }).then(function() {
+                        // A freshly migrated key invalidates any earlier escrow copy.
+                        try { delete u.escrowVersion; } catch (e) {}
                         persistUser(u);
-                        return syncAccount(u).then(function() {
-                            return { user: u, dek: dek, recoveryCode: code };
-                        });
+                        return syncAccount(u).then(function() { return ensureEscrow(u, true); })
+                            .then(function() {
+                                return { user: u, dek: dek, recoveryCode: code };
+                            });
                     });
                 });
             });
@@ -4699,6 +4857,7 @@
                 var u = createUser(username, password, '');      // id / username / createdAt
                 u.email = emailNorm;
                 u.phone = normalizePhone(phone);
+                if (apiEnabled() && apiUid()) u.uid = apiUid();
                 return generateDEK().then(function(dek) {
                     sessionDEK = dek;
                     var code = generateRecoveryCode();
@@ -4922,6 +5081,8 @@
                         try { delete u.pin; delete u.dekPin; } catch (e) {}
                     }
                     u.otp = null;
+                    // The data key just changed: the previous escrow copy is dead.
+                    try { delete u.escrowVersion; } catch (e) {}
                     var code = generateRecoveryCode();
                     return attachRecoveryCode(u, code).then(function() {
                         return encryptJSON(sessionDEK, code).then(function(encBlob) {
@@ -4933,6 +5094,8 @@
                             var serverJob = Promise.resolve();
                             if (apiEnabled()) {
                                 serverJob = syncAccount(u).then(function() {
+                                    return ensureEscrow(u, true);
+                                }).then(function() {
                                     if (!asPin && resetState.recoveryCode) {
                                         return apiResetPassword(u.email, resetState.recoveryCode, newSecret)
                                             .then(function(res) {
@@ -4985,6 +5148,392 @@
             showModal(modal);
         }
 
+        // ============================================================================
+        //  GOOGLE SIGN-IN AND KEY ESCROW
+        //  Google is identity only. The data key is still unwrapped by the user's
+        //  PIN (or password), so this section proves who they are, and the escrow
+        //  below is what lets a forgotten PIN be replaced without losing records.
+        // ============================================================================
+        var googlePendingReset = null;   // {uid, email} set by "Forgot PIN?"
+        var pinSetupState = { user: null, dek: null, mode: 'new' };
+        var gisLoading = null;
+
+        function googleConfigured() {
+            if (!apiEnabled()) return false;
+            // The native plugin takes its client ID from google-services.json,
+            // so an APK needs no value pasted here; GIS on the web still does.
+            return !!(OAUTH_CLIENT_ID || nativeGooglePlugin());
+        }
+
+        function nativeGooglePlugin() {
+            try {
+                var P = window.Capacitor && Capacitor.Plugins;
+                if (!P) return null;
+                if (P.GoogleAuth && typeof P.GoogleAuth.signIn === 'function') return P.GoogleAuth;
+                if (P.FirebaseAuthentication && typeof P.FirebaseAuthentication.signInWithGoogle === 'function') {
+                    return P.FirebaseAuthentication;
+                }
+                return null;
+            } catch (e) { return null; }
+        }
+        function pluginSignIn(plugin) {
+            return typeof plugin.signInWithGoogle === 'function' ? plugin.signInWithGoogle() : plugin.signIn();
+        }
+        function pluginIdToken(res) {
+            return (res && res.authentication && res.authentication.idToken) ||
+                   (res && res.credential && res.credential.idToken) || '';
+        }
+
+        function findUserByUid(uid) {
+            if (!uid) return null;
+            return loadUsers().find(function (u) { return u.uid === uid; }) || null;
+        }
+
+        // ------------------------------------------------------------- key escrow
+        // A copy of the SAME data key, readable only by this account with a fresh
+        // Google sign-in (enforced in Firestore rules by auth.uid + auth_time).
+        // It is never a second way to open the app: the PIN still gates the DEK.
+        function escrowPath(uid) {
+            return '/escrow/' + encodeURIComponent(uid);
+        }
+
+        function escrowRead(uid, accountId) {
+            if (!apiEnabled() || !apiToken() || !uid) return Promise.resolve(null);
+            return fbStore('GET', escrowPath(uid)).then(function (res) {
+                if (!res || !res.ok) return null;
+                var acc = res.fields && res.fields.accountId && res.fields.accountId.stringValue;
+                if (accountId && acc && acc !== accountId) return null;
+                var b64 = res.fields && res.fields.dek && res.fields.dek.stringValue;
+                if (!b64) return null;
+                return crypto.subtle.importKey('raw', b64dec(b64), { name: 'AES-GCM', length: 256 }, true,
+                    ['encrypt', 'decrypt']);
+            }).catch(function (e) {
+                console.warn('escrow read failed', e);
+                return null;
+            });
+        }
+
+        function ensureEscrow(u, force) {
+            if (!apiEnabled() || !apiToken() || !u || !u.uid || !sessionDEK) return Promise.resolve(false);
+            if (!force && u.escrowVersion === 1) return Promise.resolve(true);
+            return crypto.subtle.exportKey('raw', sessionDEK).then(function (raw) {
+                return fbStore('PATCH', escrowPath(u.uid) +
+                    '?updateMask.fieldPaths=dek&updateMask.fieldPaths=accountId&updateMask.fieldPaths=updatedAt', {
+                    fields: {
+                        dek: { stringValue: b64enc(raw) },
+                        accountId: { stringValue: u.id },
+                        updatedAt: { stringValue: new Date().toISOString() }
+                    }
+                });
+            }).then(function (res) {
+                if (!res || !res.ok) { console.warn('escrow write failed', res && res.error); return false; }
+                u.escrowVersion = 1;
+                persistUser(u);
+                return true;
+            }).catch(function (e) {
+                console.warn('escrow write failed', e);
+                return false;
+            });
+        }
+
+        // ------------------------------------------------------------ Google sign-in
+        function loadGis() {
+            if (window.google && google.accounts && google.accounts.id) return Promise.resolve(true);
+            if (gisLoading) return gisLoading;
+            gisLoading = new Promise(function (resolve) {
+                var s = document.createElement('script');
+                s.src = 'https://accounts.google.com/gsi/client';
+                s.async = true;
+                s.defer = true;
+                s.onload = function () { resolve(!!(window.google && google.accounts && google.accounts.id)); };
+                s.onerror = function () { resolve(false); };
+                document.head.appendChild(s);
+            });
+            return gisLoading;
+        }
+
+        function googleShowError(msg) {
+            var el = document.getElementById('loginError');
+            if (el) el.textContent = msg || t('googleFailed');
+        }
+
+        function onGoogleCredential(resp) {
+            if (!resp || !resp.credential) return;
+            enterWithGoogleToken(resp.credential).then(function (r) {
+                if (r && !r.ok) googleShowError(r.error);
+            });
+        }
+
+        function initGoogleAuth() {
+            var wrap = document.getElementById('googleAuthWrap');
+            if (!wrap) return;
+            if (!googleConfigured()) { wrap.classList.add('pcl-hidden'); return; }
+            wrap.classList.remove('pcl-hidden');
+            var nativeSlot = document.getElementById('googleNativeSlot');
+            var webSlot = document.getElementById('googleWebSlot');
+            if (nativeGooglePlugin()) {
+                if (webSlot) webSlot.style.display = 'none';
+                return;
+            }
+            if (nativeSlot) nativeSlot.style.display = 'none';
+            loadGis().then(function (ok) {
+                if (!ok || !webSlot) { wrap.classList.add('pcl-hidden'); return; }
+                try {
+                    google.accounts.id.initialize({
+                        client_id: OAUTH_CLIENT_ID,
+                        callback: onGoogleCredential,
+                        auto_select: false,
+                        cancel_on_tap_outside: true
+                    });
+                    google.accounts.id.renderButton(webSlot, {
+                        theme: 'outline', size: 'large', shape: 'pill',
+                        text: 'continue_with', width: 300
+                    });
+                } catch (e) {
+                    console.warn('Google button failed', e);
+                    wrap.classList.add('pcl-hidden');
+                }
+                if (googlePendingReset) {
+                    try { google.accounts.id.prompt(); } catch (e) {}
+                }
+            });
+        }
+
+        // Web: GIS renders its own button and calls back into onGoogleCredential.
+        // Native: a Capacitor GoogleAuth plugin (present only in the APK) returns
+        // the ID token directly. Without either, the button is never shown.
+        function startGoogleSignIn() {
+            var plugin = nativeGooglePlugin();
+            if (plugin) {
+                return Promise.resolve().then(function () { return pluginSignIn(plugin); }).then(function (res) {
+                    var token = pluginIdToken(res);
+                    if (!token) throw new Error('googleNoToken');
+                    return enterWithGoogleToken(token);
+                }).catch(function (e) {
+                    console.warn('native Google sign-in failed', e);
+                    return { ok: false, error: t('googleFailed') };
+                });
+            }
+            if (!googleConfigured()) return Promise.resolve({ ok: false, error: t('googleFailed') });
+            return loadGis().then(function (ok) {
+                if (!ok) return { ok: false, error: t('googleFailed') };
+                try { google.accounts.id.prompt(); } catch (e) {}
+                return { ok: true, pending: true };
+            });
+        }
+
+        function googleAuthError(res) {
+            var m = String((res && res.error) || '');
+            if (/EMAIL_EXISTS|FEDERATED_USER_ID_ALREADY_LINKED|CREDENTIAL_ALREADY_IN_USE/.test(m)) {
+                return t('googleAccountExists');
+            }
+            if (res && res._status === 0) return t('googleFailed') + ' (network)';
+            return t('googleFailed');
+        }
+
+        function enterWithGoogleToken(idToken) {
+            return fbAuth('signInWithIdToken', {
+                providerId: 'google.com', idToken: idToken, returnSecureToken: true
+            }).then(function (res) {
+                if (!res.ok) return { ok: false, error: googleAuthError(res) };
+                apiSetToken(res.token, res.email, res.refreshToken, res.uid);
+                return continueGoogleSession(res);
+            }).catch(function (e) {
+                console.warn('Google sign-in failed', e);
+                return { ok: false, error: t('googleFailed') };
+            });
+        }
+
+        function continueGoogleSession(res) {
+            var local = findUserByUid(res.uid);
+            if (!local && res.email) {
+                var byMail = findUserByEmail(res.email);
+                if (byMail && byMail.uid === res.uid) local = byMail;
+                // An account that already exists under another Firebase uid has its
+                // records there; adopting it here would strand them.
+                if (!local && byMail) {
+                    apiClearToken();
+                    return { ok: false, error: t('googleAccountExists') };
+                }
+            }
+            if (local) return beginGoogleOpen(local);
+            return apiGetData().then(function (data) {
+                if (!data || !data.ok) return { ok: false, error: t('googleFailed') };
+                if (data.account) {
+                    var user = accountFromCloud(data.account, data.blobs, res);
+                    if (user) return beginGoogleOpen(user);
+                }
+                return createGoogleAccount(res);
+            });
+        }
+
+        function accountFromCloud(rec, blobs, res) {
+            if (!rec || !rec.id) return null;
+            var user = {
+                id: rec.id, username: rec.username, email: rec.email || res.email,
+                phone: rec.phone || '', createdAt: rec.createdAt,
+                pw: rec.pw || null, dek: rec.dek || null, dekRec: rec.dekRec || null,
+                recovery: rec.recovery || null, recCodeEnc: rec.recCodeEnc || null,
+                pin: rec.pin || null, dekPin: rec.dekPin || null,
+                uid: rec.uid || res.uid, provider: rec.provider || 'google'
+            };
+            // No wrapped key on file means there is nothing to unlock.
+            if (!hasPin(user) && !(user.pw && user.pw.v === 2)) return null;
+            var users = loadUsers().filter(function (x) { return x.id !== user.id; });
+            users.push(user);
+            saveUsers(users);
+            var times = {};
+            Object.keys(blobs || {}).forEach(function (key) {
+                try { localStorage.setItem(key, JSON.stringify(blobs[key].data)); } catch (e) {}
+                times[key] = blobs[key].updatedAt;
+            });
+            saveSyncTimes(user.id, times);
+            return user;
+        }
+
+        function beginGoogleOpen(u) {
+            if (googlePendingReset && googlePendingReset.uid === u.uid) {
+                return startPinResetFromEscrow(u);
+            }
+            // Identity is proven; the PIN (or password) still has to unwrap the key.
+            lockedUser = u;
+            lockUsePassword = false;
+            hideModal(document.getElementById('pinSetupModal'));
+            showView(queueView);
+            showLockScreen(t(hasPin(u) ? 'lockNotePin' : 'lockNotePw'));
+            return { ok: true, locked: true };
+        }
+
+        function startPinResetFromEscrow(u) {
+            return escrowRead(u.uid, u.id).then(function (dek) {
+                if (!dek) {
+                    googlePendingReset = null;
+                    return { ok: false, error: t('escrowMissing') };
+                }
+                sessionDEK = dek;
+                showPinSetup(u, dek, 'reset');
+                return { ok: true, reset: true };
+            });
+        }
+
+        function googleUsername(email) {
+            var base = String(email || 'google').split('@')[0].toLowerCase().replace(/[^a-z0-9_]/g, '');
+            if (base.length < 3) base = 'user' + base;
+            base = base.slice(0, 20) || 'user';
+            var name = base, n = 1;
+            while (findUser(name)) name = base + (++n);
+            return name;
+        }
+
+        function createGoogleAccount(res) {
+            var u = createUser(googleUsername(res.email), '', '');
+            u.email = String(res.email || '').toLowerCase();
+            u.uid = res.uid;
+            u.provider = 'google';
+            u.pw = null;
+            u.dek = null;
+            return generateDEK().then(function (dek) {
+                sessionDEK = dek;
+                persistUser(u);
+                return secureSet('pclinic_data_' + u.id, []).then(function () {
+                    return syncAccount(u);
+                }).then(function () {
+                    return ensureEscrow(u, true);
+                }).then(function () {
+                    showPinSetup(u, dek, 'new');
+                    return { ok: true, needsPin: true };
+                });
+            }).catch(function (e) {
+                console.warn('Google account creation failed', e);
+                return { ok: false, error: t('googleFailed') };
+            });
+        }
+
+        // ---------------------------------------------------------- PIN setup modal
+        function showPinSetup(u, dek, mode) {
+            pinSetupState = { user: u, dek: dek, mode: mode || 'new' };
+            var m = document.getElementById('pinSetupModal');
+            var err = document.getElementById('pinSetupError');
+            if (err) err.textContent = '';
+            ['pinSetupNew', 'pinSetupNew2'].forEach(function (id) {
+                var el = document.getElementById(id); if (el) el.value = '';
+            });
+            var title = m && m.querySelector('.ios-modal-title');
+            if (title) {
+                var key = mode === 'reset' ? 'pinResetTitle' : 'pinSetupTitle';
+                title.textContent = t(key);
+                title.setAttribute('data-i18n', key);
+            }
+            if (!m) return;
+            m.style.zIndex = '150';
+            showModal(m);
+            setTimeout(function () {
+                var el = document.getElementById('pinSetupNew');
+                if (el) { try { el.focus(); } catch (e) {} }
+            }, 150);
+        }
+
+        function savePinSetup() {
+            var st = pinSetupState;
+            if (!st || !st.user || !st.dek) return;
+            var err = document.getElementById('pinSetupError');
+            var pin = (document.getElementById('pinSetupNew') || {}).value || '';
+            var pin2 = (document.getElementById('pinSetupNew2') || {}).value || '';
+            var prob = pinProblem(pin);
+            if (prob) { if (err) err.textContent = prob; return; }
+            if (pin !== pin2) { if (err) err.textContent = t('pinSetupMismatch'); return; }
+            var u = st.user;
+            var dek = st.dek;
+            var btn = document.getElementById('pinSetupSaveBtn');
+            withBusy(btn, t('saving'), wrapDEKWithPassword(pin, dek).then(function (sec) {
+                u.pin = sec.pw;
+                u.dekPin = sec.dek;
+                if (st.mode === 'new') {
+                    // A Google account is identity + PIN; there is no password to keep.
+                    u.pw = null;
+                    u.dek = null;
+                }
+                sessionDEK = dek;
+                persistUser(u);
+                return syncAccount(u);
+            })).then(function () {
+                return ensureEscrow(u, st.mode === 'reset');
+            }).then(function () {
+                var m = document.getElementById('pinSetupModal');
+                if (m) hideModal(m);
+                pinSetupState = { user: null, dek: null, mode: 'new' };
+                googlePendingReset = null;
+                return enterApp(u);
+            }).then(function () {
+                showToast(t('pinSaved'), 'success');
+            }).catch(function (e) {
+                console.warn('PIN save failed', e);
+                if (err) err.textContent = t('pinSaveFailed');
+            });
+        }
+
+        function setupGoogleAuthEvents() {
+            var gb = document.getElementById('googleNativeBtn');
+            if (gb) gb.addEventListener('click', function () {
+                if (!googleConfigured()) return;
+                withBusy(gb, t('googleSigningIn'), Promise.resolve(startGoogleSignIn())).then(function (r) {
+                    if (r && !r.ok) googleShowError(r.error);
+                }).catch(function (e) {
+                    console.warn('Google button failed', e);
+                    googleShowError(t('googleFailed'));
+                });
+            });
+            var save = document.getElementById('pinSetupSaveBtn');
+            if (save) save.addEventListener('click', savePinSetup);
+            ['pinSetupNew', 'pinSetupNew2'].forEach(function (id) {
+                var el = document.getElementById(id);
+                if (el) el.addEventListener('input', function () {
+                    var err = document.getElementById('pinSetupError');
+                    if (err) err.textContent = '';
+                });
+            });
+        }
+
         // ============================================
         // I18N - Multi-language Support
         // ============================================
@@ -5032,9 +5581,6 @@
                 phoneNumber: 'Phone Number',
                 phoneUpdated: 'Last updated',
                 noPhone: 'No phone number added yet.',
-                backupReminderTitle: 'Back Up Your Patient Data',
-                backupReminderText: 'It\'s been a while since your last backup. Export a copy now so you never lose your patient records — this file also lets you or anyone else reopen everything later, even after uninstalling the app.',
-                remindLater: 'Remind Me Later',
                 selectDiagnosis: 'Select a diagnosis',
                 intervention: 'Intervention / Treatment',
                 cancel: 'Cancel',
@@ -5139,7 +5685,6 @@
                 noPatientsFound: 'No patients found',
                 downloaded: 'downloaded',
                 failedToProcess: 'Failed to process file',
-                welcomeBack: 'Welcome back, ',
                 accountNotFound: 'Account not found.',
                 usernameMin: 'Username must be at least 3 characters.',
                 usernameInvalid: 'Username: only letters, numbers, underscores.',
@@ -5171,6 +5716,28 @@
                 lockUnlock: 'Unlock',
                 lockForgot: 'Forgot password?',
                 lockSignOut: 'Sign out',
+                lockPinForgot: 'Forgot PIN?',
+                lockUsePassword: 'Use password instead',
+                lockUsePin: 'Use PIN instead',
+                lockPinPh: 'Enter your 4-digit PIN',
+                lockNotePin: 'Enter your 4-digit PIN to continue.',
+                lockNotePw: 'Enter your password to continue.',
+                googleOr: 'or use your account',
+                googleContinue: 'Continue with Google',
+                googleSigningIn: 'Signing in with Google…',
+                googleFailed: 'Google sign-in did not complete. Check your connection and try again.',
+                googleAccountExists: 'This e-mail already has a PClinic account. Sign in with your password once, then use Google.',
+                googleResetHint: 'Forgotten PIN? Sign in with Google to set a new one — your records stay intact.',
+                escrowMissing: 'Your saved key could not be found, so the PIN cannot be reset. Sign in with your password instead.',
+                pinSetupTitle: 'Choose a 4-digit PIN',
+                pinResetTitle: 'Choose a new PIN',
+                pinSetupText: 'You type this PIN every time you open PClinic. It unlocks your records on this and any other device.',
+                pinSetupPh: '4-digit PIN',
+                pinSetupPh2: 'Confirm PIN',
+                pinSetupSave: 'Save PIN',
+                pinSetupMismatch: 'The two PINs do not match.',
+                pinSaveFailed: 'Could not save the PIN. Try again.',
+                pinSaved: 'PIN saved.',
                 lockedManual: 'Locked manually.',
                 lockedInactive: 'Locked after inactivity.',
                 lockedBackground: 'Locked while the app was in the background.',
@@ -5329,7 +5896,6 @@
                 profileProofPh: 'Your password, to confirm this change',
                 profileNewPassPh: 'Enter new password (min 6 chars)',
                 reportSearchPh: 'Search by name or ID...',
-                backupEmailPh: 'Email for backup (optional)',
                 interventionPh: 'Enter intervention plan...',
                 symptomsPh: 'Describe symptoms, history...',
                 patientAgePh: 'Enter age',
@@ -5342,8 +5908,6 @@
                 loginPassPh: 'Password or PIN',
                 usernamePh: 'Username',
                 usernameOrEmailPh: 'Username or e-mail',
-                helpShowAgain: 'Show this again next time? (Cancel = do not show again)',
-                quickStartHelp: 'Quick start:\n\n1) Tap + next to Patient Queue to add a patient\n2) Open a patient to add notes, diagnosis, photos\n3) Backup icon → Export or Email Backup (recommended weekly)\n4) After reinstall: Backup → Import the .json file or paste from email\n\nTip: Search works on name, ID, diagnosis, and notes.',
                 emailCodeBody: 'Your PClinic Pro password reset code is:\n\n    {n}\n\nThis code expires in 10 minutes.\nIf you did not request it, you can ignore this message.',
                 emailCodeSubject: 'PClinic Pro — password reset code',
                 invalidBackupFile: 'Invalid backup file',
@@ -5437,9 +6001,6 @@
                 phoneNumber: 'Numéro de Téléphone',
                 phoneUpdated: 'Dernière mise à jour',
                 noPhone: 'Aucun numéro de téléphone ajouté.',
-                backupReminderTitle: 'Sauvegardez vos données patients',
-                backupReminderText: 'Votre dernière sauvegarde date d\'un moment. Exportez une copie maintenant pour ne jamais perdre vos dossiers patients — ce fichier vous permet aussi, à vous ou à quelqu\'un d\'autre, de tout rouvrir plus tard, même après avoir désinstallé l\'application.',
-                remindLater: 'Me le rappeler plus tard',
                 selectDiagnosis: 'Choisir un diagnostic',
                 intervention: 'Intervention / Traitement',
                 cancel: 'Annuler',
@@ -5544,7 +6105,6 @@
                 noPatientsFound: 'Aucun patient trouvé',
                 downloaded: 'téléchargé',
                 failedToProcess: 'Échec du traitement du fichier',
-                welcomeBack: 'Bon retour, ',
                 accountNotFound: 'Compte non trouvé.',
                 usernameMin: 'Le nom d\'utilisateur doit avoir au moins 3 caractères.',
                 usernameInvalid: 'Nom d\'utilisateur: seulement lettres, chiffres, underscores.',
@@ -5576,6 +6136,28 @@
                 lockUnlock: 'Déverrouiller',
                 lockForgot: 'Mot de passe oublié ?',
                 lockSignOut: 'Se déconnecter',
+                lockPinForgot: 'Code PIN oublié ?',
+                lockUsePassword: 'Utiliser le mot de passe',
+                lockUsePin: 'Utiliser le code PIN',
+                lockPinPh: 'Saisissez votre code PIN à 4 chiffres',
+                lockNotePin: 'Saisissez votre code PIN à 4 chiffres pour continuer.',
+                lockNotePw: 'Saisissez votre mot de passe pour continuer.',
+                googleOr: 'ou utilisez votre compte',
+                googleContinue: 'Continuer avec Google',
+                googleSigningIn: 'Connexion avec Google…',
+                googleFailed: 'La connexion Google n’a pas abouti. Vérifiez votre connexion et réessayez.',
+                googleAccountExists: 'Cette adresse e-mail possède déjà un compte PClinic. Connectez-vous une fois avec votre mot de passe, puis utilisez Google.',
+                googleResetHint: 'Code PIN oublié ? Connectez-vous avec Google pour en définir un nouveau — vos dossiers restent intacts.',
+                escrowMissing: 'Votre clé enregistrée est introuvable, le code PIN ne peut donc pas être réinitialisé. Connectez-vous avec votre mot de passe.',
+                pinSetupTitle: 'Choisissez un code PIN à 4 chiffres',
+                pinResetTitle: 'Choisissez un nouveau code PIN',
+                pinSetupText: 'Vous saisissez ce code PIN à chaque ouverture de PClinic. Il déverrouille vos dossiers sur cet appareil et sur tout autre.',
+                pinSetupPh: 'Code PIN à 4 chiffres',
+                pinSetupPh2: 'Confirmez le code PIN',
+                pinSetupSave: 'Enregistrer le code PIN',
+                pinSetupMismatch: 'Les deux codes PIN ne correspondent pas.',
+                pinSaveFailed: 'Impossible d’enregistrer le code PIN. Réessayez.',
+                pinSaved: 'Code PIN enregistré.',
                 lockedManual: 'Verrouillé manuellement.',
                 lockedInactive: 'Verrouillé après inactivité.',
                 lockedBackground: 'Verrouillé pendant que l’application était en arrière-plan.',
@@ -5734,7 +6316,6 @@
                 profileProofPh: 'Votre mot de passe, pour confirmer ce changement',
                 profileNewPassPh: 'Saisir le nouveau mot de passe (min 6)',
                 reportSearchPh: 'Rechercher par nom ou ID...',
-                backupEmailPh: 'E-mail pour la sauvegarde (facultatif)',
                 interventionPh: 'Saisir le plan d\'intervention...',
                 symptomsPh: 'Décrivez les symptômes, les antécédents...',
                 patientAgePh: 'Saisir l\'âge',
@@ -5747,8 +6328,6 @@
                 loginPassPh: 'Mot de passe ou code PIN',
                 usernamePh: 'Nom d\'utilisateur',
                 usernameOrEmailPh: 'Nom d\'utilisateur ou e-mail',
-                helpShowAgain: 'Afficher ceci la prochaine fois ? (Annuler = ne plus afficher)',
-                quickStartHelp: 'Démarrage rapide :\n\n1) Touchez + à côté de la file des patients pour ajouter un patient\n2) Ouvrez un patient pour ajouter notes, diagnostic, photos\n3) Icône de sauvegarde → Exporter ou Envoyer par e-mail (recommandé chaque semaine)\n4) Après une réinstallation : Sauvegarde → Importer le fichier .json ou coller depuis l’e-mail\n\nAstuce : la recherche fonctionne sur le nom, l’ID, le diagnostic et les notes.',
                 emailCodeBody: 'Votre code de réinitialisation du mot de passe PClinic Pro est :\n\n    {n}\n\nCe code expire dans 10 minutes.\nSi vous ne l’avez pas demandé, ignorez ce message.',
                 emailCodeSubject: 'PClinic Pro — code de réinitialisation du mot de passe',
                 invalidBackupFile: 'Fichier de sauvegarde invalide',
@@ -5842,9 +6421,6 @@
                 phoneNumber: 'Numero ya Telefoni',
                 phoneUpdated: 'Byahinduwe bwa nyuma',
                 noPhone: 'Nta numero ya telefoni yashyizweho.',
-                backupReminderTitle: 'Bika Amakuru y\'Abarwayi Bawe',
-                backupReminderText: 'Igihe kirageze cyo kubika amakuru yawe. Manura kopi ubu kugira ngo utazatakaza amadosiye y\'abarwayi — iyi dosiye nayo ituma wowe cyangwa undi muntu ashobora kongera kuyifungura nyuma, n\'ubwo waba wasibye porogaramu.',
-                remindLater: 'Nzabikora nyuma',
                 selectDiagnosis: 'Hitamo indwara',
                 intervention: 'Uburyo Bwo Kuvura',
                 cancel: 'Reka',
@@ -5949,7 +6525,6 @@
                 noPatientsFound: 'Nta barwayi babonetse',
                 downloaded: 'yamanuwe',
                 failedToProcess: 'Dosiye ntishoboye gutunganywa',
-                welcomeBack: 'Murakaza neza, ',
                 accountNotFound: 'Konti ntibonetse.',
                 usernameMin: 'Izina rigomba kugira inyuguti 3.',
                 usernameInvalid: 'Izina: inyuguti, imibare, _ gusa.',
@@ -5982,6 +6557,28 @@
                 lockUnlock: 'Fungura',
                 lockForgot: 'Wibagiwe ijambo ry\'ibanga?',
                 lockSignOut: 'Sohoka',
+                lockPinForgot: 'Wibagiwe PIN?',
+                lockUsePassword: 'Koresha ijambo ry\'ibanga',
+                lockUsePin: 'Koresha PIN',
+                lockPinPh: 'Andika PIN yawe y\'imibare 4',
+                lockNotePin: 'Andika PIN yawe y\'imibare 4 kugira ngo ukomeze.',
+                lockNotePw: 'Andika ijambo ry\'ibanga kugira ngo ukomeze.',
+                googleOr: 'cyangwa ukoreshe konti yawe',
+                googleContinue: 'Komeza na Google',
+                googleSigningIn: 'Kwinjira na Google…',
+                googleFailed: 'Kwinjira na Google ntibyakunze. Reba interineti yawe hanyuma ugerageze.',
+                googleAccountExists: 'Iyi imeyili isanzwe ifite konti ya PClinic. Injira rimwe n\'ijambo ry\'ibanga, hanyuma ukoreshe Google.',
+                googleResetHint: 'Wibagiwe PIN? Injira na Google ushyireho indi nshya — inyandiko zawe ntizizimira.',
+                escrowMissing: 'Urufunguzo rwawe rwabitswe ntirwabonetse, bityo PIN ntishobora guhindurwa. Injira n\'ijambo ry\'ibanga.',
+                pinSetupTitle: 'Hitamo PIN y\'imibare 4',
+                pinResetTitle: 'Hitamo PIN nshya',
+                pinSetupText: 'Ushyiramo iyi PIN buri gihe ufungura PClinic. Ifungura inyandiko zawe kuri iyi telefoni n\'izindi.',
+                pinSetupPh: 'PIN y\'imibare 4',
+                pinSetupPh2: 'Emeza PIN',
+                pinSetupSave: 'Bika PIN',
+                pinSetupMismatch: 'PIN ebyiri ntizihura.',
+                pinSaveFailed: 'Ntibishobotse kubika PIN. Ongera ugerageze.',
+                pinSaved: 'PIN yabitswe.',
                 lockedManual: 'Yafunzwe n\'umuntu.',
                 lockedInactive: 'Yafunzwe nyuma yo kutakoreshwa.',
                 lockedBackground: 'Yafunzwe igihe porogaramu yari inyuma.',
@@ -6140,7 +6737,6 @@
                 profileProofPh: 'Ijambo ry\'ibanga ryawe, kugira ngo wemeze iri hinduka',
                 profileNewPassPh: 'Andika ijambo ry\'ibanga rishya (nibura 6)',
                 reportSearchPh: 'Shakisha ku izina cyangwa ID...',
-                backupEmailPh: 'Imeyili y\'umukororombyra (si itegeko)',
                 interventionPh: 'Andika umugambi w\'itabazwa...',
                 symptomsPh: 'Sobanura ibimenyetso, amateka...',
                 patientAgePh: 'Andika imyaka',
@@ -6153,8 +6749,6 @@
                 loginPassPh: 'Ijambo ry\'ibanga cyangwa PIN',
                 usernamePh: 'Izina ry\'ukoresha',
                 usernameOrEmailPh: 'Izina ry\'ukoresha cyangwa e-mail',
-                helpShowAgain: 'Erekana ibi ubutaha? (Kuneka = ntibizongera kerekanwa)',
-                quickStartHelp: 'Intangiriro yihuse:\n\n1) Kanda + hafi y\'urutonde rw\'abarwayi kugira ngo wongere umurwayi\n2) Fungura umurwayi kugira ngo wongere inyandiko, ibibazo n\'amafoto\n3) Ikimenyetso cy\'umukororombyra → Kohereza cyangwa Ohereza kuri imeyili (buri cyumweru)\n4) Nyuma yo gushyiraho kongera: Umukororombyra → Intranya dosiye ya .json cyangwa ukopeshe uvanye kuri imeyili\n\nInama: Gushakisha bikora ku izina, ID, ibibazo n\'inyandiko.',
                 emailCodeBody: 'Kode yawo yo gusubiza ijambo ry\'ibanga rya PClinic Pro ni:\n\n    {n}\n\nIyi kode irangiza mu minota 10.\nNibuta wayisabye, ushobora kuyireka.',
                 emailCodeSubject: 'PClinic Pro — kode yo gusubiza ijambo ry\'ibanga',
                 invalidBackupFile: 'Dosiye y’umukororombyra si yo',
@@ -6951,7 +7545,7 @@
                  backupModal, activityModal, profileModal].forEach(function(m) {
                     if (m) hideModal(m);
                 });
-                ['backupReminderModal', 'driveUploadModal', 'cameraModal',
+                ['driveUploadModal', 'cameraModal',
                  'mediaActionModal', 'vaultModal'].forEach(function(id) {
                     var el = document.getElementById(id);
                     if (el) hideModal(el);
@@ -7014,6 +7608,13 @@
             window.__decryptFailed = {};
             hideLockScreen();
             currentUser = user;
+            // The Firebase uid is the cloud sync path; remember it so Google
+            // sign-in can find this account on the next device.
+            if (user && !user.uid && apiEnabled() && apiToken() && apiUid()) {
+                user.uid = apiUid();
+                persistUser(user);
+                syncAccount(user);
+            }
             // First run for this account: make sure the privacy notice has been seen.
             // Deliberately on a delay so it never stacks on top of the recovery code.
             if (user && !user.privacyAcceptedAt) {
@@ -7031,6 +7632,8 @@
                 .then(loadCatalogFromStore)
                 .then(loadTombstones)
                 .then(function() {
+                    // Keep the escrowed key current (no-op offline / already written).
+                    if (user && user.uid) ensureEscrow(user);
                     rebuildMediaIndex();
                     loadCatalog(); // custom hospitals/diagnoses + frequency ranking
                     refreshAllOptionSelects();
@@ -7042,32 +7645,17 @@
                     if (profileUsername) profileUsername.textContent = user.username;
                     if (profileUserId) profileUserId.textContent = t('idLabel') + user.id;
                     if (profileCreated) profileCreated.textContent = t('createdLabel') + new Date(user.createdAt).toLocaleDateString();
-                    setTimeout(checkBackupReminder, 900);
                     loadDriveToken();
                     // Push any media that has no Drive copy yet (background).
                     if (typeof driveSyncMedia === 'function') {
                         driveSyncMedia().catch(function (e) { console.warn('drive media sync failed', e); });
                     }
-                    setTimeout(showFirstTimeHelp, 1200);
                     startCloudSyncLoop();
                     requestCloudSync(300);          // sign-in, unlock and app start all land here
                     lastActivityAt = Date.now();
                     refreshProfileSecurity();
                     return true;
                 });
-        }
-
-        function showFirstTimeHelp() {
-            if (!currentUser) return;
-            try {
-                if (localStorage.getItem('pclinic_help_seen_' + currentUser.id)) return;
-            } catch(e) {}
-            var msg = t('quickStartHelp');
-            if (confirm(msg + '\n\n' + t('helpShowAgain'))) {
-                /* keep showing */
-            } else {
-                try { localStorage.setItem('pclinic_help_seen_' + currentUser.id, '1'); } catch(e) {}
-            }
         }
 
         function logout() {
@@ -7516,7 +8104,7 @@
                         if (!url) return;
                         return generateVideoThumbnailFromSrc(url).then(function(thumb) {
                             if (!thumb) return;
-                            var store = (MediaStore.available() && sessionDEK)
+                            var store = mediaStoreUsable()
                                 ? MediaStore.putFromDataUrl(item.id + '.thumb.bin', thumb).then(function(ref) {
                                       item.thumbFile = ref; item.thumbnail = '';
                                   })
@@ -8030,24 +8618,6 @@
         // ============================================
         // Backup / Restore
         // ============================================
-        function getBackupTrackKey() { return 'pclinic_last_backup_' + currentUser.id; }
-        function getBackupSnoozeKey() { return 'pclinic_backup_snooze_' + currentUser.id; }
-
-        function checkBackupReminder() {
-            if (!currentUser || !patients.length) return;
-            var now = Date.now();
-            var snoozeUntil = parseInt(localStorage.getItem(getBackupSnoozeKey()) || '0', 10);
-            if (now < snoozeUntil) return;
-            var lastBackup = localStorage.getItem(getBackupTrackKey());
-            var daysSince = lastBackup ? (now - new Date(lastBackup).getTime()) / 86400000 : Infinity;
-            if (daysSince >= 7) {
-                var reminderModal = $('#backupReminderModal');
-                var remEmail = document.getElementById('backupReminderEmail');
-                if (remEmail) remEmail.value = getSavedBackupEmail();
-                if (reminderModal) showModal(reminderModal);
-            }
-        }
-
         function buildFullBackup() {
             // activity log travels with the backup so it survives a reinstall
             // Media lives outside localStorage now, so it is read back in and
@@ -8147,8 +8717,6 @@
             try {
                 var bm = document.getElementById('backupModal');
                 if (bm) hideModal(bm);
-                var brm = document.getElementById('backupReminderModal');
-                if (brm) hideModal(brm);
             } catch (e) {}
             var modal = document.getElementById('driveUploadModal');
             if (modal) {
@@ -8181,13 +8749,10 @@
                     title: 'PClinic Pro Backup',
                     text: 'PClinic full backup (' + patients.length + ' patients) — save to Google Drive'
                 }).then(function() {
-                    try {
-                        localStorage.setItem(getBackupTrackKey(), new Date().toISOString());
-                        // Session-only "share sheet used" flag — no fake token stored.
-                        driveConnected = true;
-                        driveToken = null;
-                        updateDriveStatus();
-                    } catch (e) {}
+                    // Session-only "share sheet used" flag — no fake token stored.
+                    driveConnected = true;
+                    driveToken = null;
+                    updateDriveStatus();
                     showToast(t('pickDriveInShare'), 'success');
                     var modal = document.getElementById('driveUploadModal');
                     if (modal) hideModal(modal);
@@ -8220,7 +8785,6 @@
                 lastBackupFile = pack.file;
                 lastBackupFileName = pack.filename;
                 downloadBlobFile(pack.blob, pack.filename);
-                try { localStorage.setItem(getBackupTrackKey(), new Date().toISOString()); } catch (e) {}
                 showToast((pack.encrypted ? t('backupSavedProtected') : t('backupSavedPlain'))
                           .replace('{n}', String(patients.length)), 'success');
                 if (offerDrive) {
@@ -8276,6 +8840,11 @@
             apiKey: 'AIzaSyAcfSN-Z1FRnZC6bASy3b08abPDYJr-Ku0',
             projectId: 'pclinic-20d81'
         };
+
+        // Google sign-in: paste the OAuth *Web* client ID here
+        // (…apps.googleusercontent.com). While it is empty the Google button is
+        // hidden and the username/password form is the only way in.
+        var OAUTH_CLIENT_ID = '';
 
         var emailjsReady = false;
 
@@ -8599,6 +9168,7 @@
             var record = {
                 id: user.id, username: user.username, email: user.email, phone: user.phone,
                 createdAt: user.createdAt,
+                uid: user.uid || '', provider: user.provider || '',
                 pw: user.pw, dek: user.dek, dekRec: user.dekRec, recovery: user.recovery,
                 recCodeEnc: user.recCodeEnc, pin: user.pin, dekPin: user.dekPin
             };
@@ -8995,7 +9565,6 @@
             // Always download full backup first (this is the reliable restore source)
             // Don't open Drive popup during email flow (user is focused on email)
             exportBackup({ offerDrive: false });
-            try { localStorage.setItem(getBackupTrackKey(), new Date().toISOString()); } catch (e) {}
 
             var safe = buildEmailSafePayload();
             var instructions =
@@ -9356,6 +9925,49 @@
             });
         }
 
+        // Decode a photo for the preview only; the original bytes are never touched.
+        function loadImageForThumb(file) {
+            return new Promise(function(resolve, reject) {
+                var url = null;
+                try { url = URL.createObjectURL(file); } catch (e) { reject(e); return; }
+                var img = new Image();
+                img.onload = function() { resolve({ img: img, url: url }); };
+                img.onerror = function() {
+                    try { URL.revokeObjectURL(url); } catch (e) {}
+                    reject(new Error('decode failed'));
+                };
+                img.src = url;
+            });
+        }
+
+        function makeThumbFromImg(img, maxDim, q) {
+            try {
+                var scale = Math.min(1, maxDim / Math.max(img.width || 1, img.height || 1));
+                var w = Math.max(1, Math.round((img.width || 1) * scale));
+                var h = Math.max(1, Math.round((img.height || 1) * scale));
+                var c = document.createElement('canvas');
+                c.width = w; c.height = h;
+                var ctx = c.getContext('2d');
+                if (!ctx) return '';
+                ctx.imageSmoothingEnabled = true;
+                ctx.imageSmoothingQuality = 'high';
+                ctx.drawImage(img, 0, 0, w, h);
+                return c.toDataURL('image/jpeg', q || 0.7);
+            } catch (e) { return ''; }
+        }
+
+        function readFileBytes(file) {
+            if (file && typeof file.arrayBuffer === 'function') {
+                return file.arrayBuffer().then(function (b) { return new Uint8Array(b); });
+            }
+            return new Promise(function(resolve, reject) {
+                var r = new FileReader();
+                r.onload = function(e) { resolve(new Uint8Array(e.target.result)); };
+                r.onerror = function() { reject(new Error('read failed')); };
+                r.readAsArrayBuffer(file);
+            });
+        }
+
         function captureLiveVideoFrame() {
             try {
                 var cameraVideoEl = $('#cameraVideo');
@@ -9462,8 +10074,26 @@
                 file = normalizeMediaFile(file);
                 var type = (file.type || '').startsWith('video/') ? 'video' : 'image';
                 if (type === 'image') {
-                    resizeImage(file).then(function(data) {
-                        resolve({ type: 'image', data: data, thumbnail: '', mime: dataUrlMime(data) || 'image/jpeg' });
+                    // Keep the untouched original as the main copy: re-encoding a
+                    // photo is what erases fine orthopaedic detail. Only the small
+                    // preview is compressed. Without a media store the inline
+                    // data URL is the only copy, so fall back to the old
+                    // near-HD compromise rather than risk the storage quota.
+                    var keepOriginal = mediaStoreUsable();
+                    loadImageForThumb(file).then(function(dec) {
+                        var thumb = makeThumbFromImg(dec.img, 320, 0.7);
+                        try { URL.revokeObjectURL(dec.url); } catch (e) {}
+                        if (!keepOriginal) {
+                            return resizeImage(file).then(function(data) {
+                                resolve({ type: 'image', data: data, thumbnail: thumb, mime: 'image/jpeg' });
+                            });
+                        }
+                        return readFileBytes(file).then(function(bytes) {
+                            resolve({
+                                type: 'image', bytes: bytes, thumbnail: thumb,
+                                mime: file.type || 'image/jpeg'
+                            });
+                        });
                     }).catch(reject);
                 } else {
                     var objectUrl = null;
@@ -9536,12 +10166,14 @@
                         caption: caption || '',
                         uploadedAt: new Date().toISOString()
                     };
-                    if (MediaStore.available() && sessionDEK) {
+                    if (mediaStoreUsable()) {
                         try {
-                            item.file = await MediaStore.putFromDataUrl(mid + '.bin', result.data);
+                            item.file = result.bytes
+                                ? await MediaStore.put(mid + '.bin', result.bytes)
+                                : await MediaStore.putFromDataUrl(mid + '.bin', result.data);
                         } catch (e2) { item.file = ''; }
                         var thumbData = result.thumbnail || '';
-                        if (!thumbData && result.type === 'image') {
+                        if (!thumbData && result.type === 'image' && result.data) {
                             thumbData = await makeImageThumbnail(result.data);
                         }
                         if (thumbData && item.file) {
@@ -9551,8 +10183,12 @@
                         }
                     }
                     if (!item.file) {
-                        // No external store available - keep it inline so nothing is lost.
-                        item.data = result.data;
+                        // No external store (or its write failed) - keep it inline so
+                        // nothing is lost. Recompress only in this rare fallback.
+                        if (!result.data && result.type === 'image') {
+                            try { result.data = await resizeImage(f); } catch (e4) {}
+                        }
+                        item.data = result.data || '';
                         item.thumbnail = result.thumbnail || '';
                     }
                     media.push(item);
@@ -10020,8 +10656,8 @@
                         return;
                     }
                     noteAuthSuccess();
+                    googlePendingReset = null;   // a password sign-in abandons any PIN reset
                     return enterApp(res.user).then(function() {
-                        showToast(t('welcomeBack') + res.user.username, 'success');
                         if (res.recoveryCode) showRecoveryCodeModal(res.recoveryCode, true);
                         // A PIN is short by design, so it must not trip the weak-password check.
                         if (!res.viaPin && passwordProblem(password, res.user.username)) showForcePasswordModal(res.user);
@@ -10297,34 +10933,6 @@
                 if (e.target === driveUploadModal) hideModal(driveUploadModal);
             });
 
-            var backupReminderModal = $('#backupReminderModal');
-            var backupReminderLaterBtn = $('#backupReminderLaterBtn');
-            var backupReminderExportBtn = $('#backupReminderExportBtn');
-            if (backupReminderLaterBtn) backupReminderLaterBtn.addEventListener('click', function() {
-                localStorage.setItem(getBackupSnoozeKey(), String(Date.now() + 86400000));
-                hideModal(backupReminderModal);
-            });
-            if (backupReminderExportBtn) backupReminderExportBtn.addEventListener('click', function() {
-                hideModal(backupReminderModal);
-                exportBackup({ offerDrive: true });
-            });
-            var backupReminderEmailBtn = document.getElementById('backupReminderEmailBtn');
-            if (backupReminderEmailBtn) backupReminderEmailBtn.addEventListener('click', function() {
-                var em = document.getElementById('backupReminderEmail');
-                var emailInput = document.getElementById('backupEmailInput');
-                if (em && emailInput && em.value.trim()) emailInput.value = em.value.trim();
-                else if (emailInput && !emailInput.value) emailInput.value = getSavedBackupEmail();
-                hideModal(backupReminderModal);
-                // open backup modal for email send
-                showModal(backupModal);
-                if (emailInput && emailInput.value.trim()) {
-                    setTimeout(function() { sendEmailBackup(); }, 300);
-                } else {
-                    showToast(t('enterEmailThenSend'), 'info');
-                }
-            });
-            // prefill reminder email
-            var _origShowReminder = null;
             backupModal.addEventListener('click', function(e) { if (e.target === backupModal) hideModal(backupModal); });
 
             activityBtnHeader.addEventListener('click', function() {
@@ -10665,12 +11273,30 @@
                     });
                 });
             }
+            var lo = $id('lockOtherBtn');
+            if (lo) lo.addEventListener('click', function() {
+                lockUsePassword = lockPinMode();      // flip between PIN and password
+                applyLockMode();
+                try { $id('lockPassword').focus(); } catch (e) {}
+            });
             var lf = $id('lockForgotBtn');
             if (lf) lf.addEventListener('click', function() {
+                var u = lockedUser;
+                var viaGoogle = !!(u && u.uid && googleConfigured());
                 lockedUser = null; sessionDEK = null; currentUser = null;
                 hideLockScreen();
                 clearSession();
                 if (typeof resetUserState === 'function') resetUserState();
+                if (viaGoogle) {
+                    // Self-service PIN reset: a fresh Google sign-in releases the
+                    // escrowed key, then the user picks a new PIN.
+                    googlePendingReset = { uid: u.uid, email: u.email || '' };
+                    showView(authView);
+                    showAuthPanelByName('loginPanel');
+                    googleShowError(t('googleResetHint'));
+                    initGoogleAuth();
+                    return;
+                }
                 resetForgotUI();
                 showView(authView);
                 showAuthPanelByName('forgotPanel');
@@ -11135,6 +11761,8 @@
             initEmailJS();
             setupEvents();
             setupSecurityEvents();
+            setupGoogleAuthEvents();
+            initGoogleAuth();
             if (!cryptoAvailable()) {
                 showToast(t('noWebCrypto'), 'error');
             }
@@ -11155,11 +11783,12 @@
                 showAuthPanelByName('loginPanel');
                 return;
             }
-            // Cold start always costs a password: the data key is derived from it.
+            // Cold start always costs a credential: the data key is derived from it.
             if (requireUnlockOnOpen()) {
                 lockedUser = user;
+                lockUsePassword = false;
                 showView(queueView);
-                showLockScreen('Enter your password to continue.');
+                showLockScreen(t(hasPin(user) ? 'lockNotePin' : 'lockNotePw'));
             } else {
                 clearSession();
                 showView(authView);
@@ -11176,7 +11805,12 @@
             var sel = id('profileLockSelect');
             if (sel) sel.value = String(getLockMs());
             var op = id('profileLockOpen');
-            if (op) op.value = requireUnlockOnOpen() ? '1' : '0';
+            if (op) {
+                // With a PIN, "unlock on open" is not optional — the PIN is the sign-in.
+                var pinForced = hasPin(currentUser);
+                op.value = (pinForced || requireUnlockOnOpen()) ? '1' : '0';
+                op.disabled = pinForced;
+            }
             var box = id('profileRecValue');
             if (box) { box.textContent = '—'; box.classList.add('pcl-hidden'); }
             var pinOn = hasPin(currentUser);
