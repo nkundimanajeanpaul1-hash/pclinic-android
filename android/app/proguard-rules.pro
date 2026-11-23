@@ -15,6 +15,11 @@
 # ---- App ----------------------------------------------------------------------
 -keep class com.nkundimana.pclinic.** { *; }
 
+# ---- Capacitor Firebase Authentication ----------------------------------------
+# The plugin compiles in a Facebook provider, but Facebook login is not used and
+# the Facebook SDK is not a dependency; R8 treats its references as missing.
+-dontwarn com.facebook.**
+
 # ---- Web <-> native bridge ----------------------------------------------------
 -keepclassmembers class * {
     @android.webkit.JavascriptInterface <methods>;
