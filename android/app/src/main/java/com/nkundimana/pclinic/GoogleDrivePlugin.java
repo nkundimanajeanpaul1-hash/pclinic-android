@@ -458,6 +458,42 @@ public class GoogleDrivePlugin extends Plugin {
         });
     }
 
+    /** Delete one media file (it was created by this app, so drive.file allows it). */
+    @PluginMethod()
+    public void deleteMedia(PluginCall call) {
+        io.execute(() -> {
+            try {
+                GoogleSignInAccount acc = GoogleSignIn.getLastSignedInAccount(getContext());
+                if (acc == null) { call.reject("not signed in to Google Drive"); return; }
+                String fileId = call.getString("fileId", "");
+                if (fileId == null || fileId.isEmpty()) { call.reject("no fileId"); return; }
+                String token = GoogleAuthUtil.getToken(getContext(), acc.getAccount(), "oauth2:" + SCOPES);
+                try {
+                    doDelete(token, fileId);
+                } catch (Exception first) {
+                    GoogleAuthUtil.invalidateToken(getContext(), token);
+                    token = GoogleAuthUtil.getToken(getContext(), acc.getAccount(), "oauth2:" + SCOPES);
+                    doDelete(token, fileId);
+                }
+                JSObject ret = new JSObject();
+                ret.put("ok", true);
+                call.resolve(ret);
+            } catch (Exception e) {
+                call.reject("media delete failed: " + reason(e), e);
+            }
+        });
+    }
+
+    private void doDelete(String token, String id) throws Exception {
+        HttpURLConnection c = (HttpURLConnection) new URL(
+                "https://www.googleapis.com/drive/v3/files/" + id).openConnection();
+        c.setRequestMethod("DELETE");
+        c.setRequestProperty("Authorization", "Bearer " + token);
+        int code = c.getResponseCode();
+        // 404 means it is already gone — a retry of the same delete is not an error.
+        if (code >= 400 && code != 404) throw new Exception("drive delete " + code + ": " + slurp(c.getErrorStream()));
+    }
+
     /** Find the visible media folder by name, or null. */
     private String findFolder(String token, String name) throws Exception {
         JSONObject j = get(token, "https://www.googleapis.com/drive/v3/files?q="

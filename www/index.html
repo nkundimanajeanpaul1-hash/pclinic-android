@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; media-src 'self' blob:; font-src 'self' data:; connect-src 'self' https://api.emailjs.com https://us-central1-pclinic-20d81.cloudfunctions.net https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://firestore.googleapis.com; child-src 'self' blob:; frame-src 'self' blob:; object-src 'none'; base-uri 'self'; form-action 'self';">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://accounts.google.com; style-src 'self' 'unsafe-inline' https://accounts.google.com; img-src 'self' data: blob:; media-src 'self' blob:; font-src 'self' data:; connect-src 'self' https://api.emailjs.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://firestore.googleapis.com https://accounts.google.com; child-src 'self' blob:; frame-src 'self' blob: https://accounts.google.com; object-src 'none'; base-uri 'self'; form-action 'self';">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=2.0, user-scalable=yes">
     <title>PClinic Pro - Drive Backup</title>
     <meta name="apple-mobile-web-app-capable" content="yes">
@@ -1976,10 +1976,21 @@
                 </div>
 
                 <div id="loginPanel" class="ios-auth-panel active">
+                    <div id="googleAuthWrap" class="pcl-hidden" style="margin-bottom:14px;">
+                        <div id="googleNativeSlot">
+                            <button type="button" id="googleNativeBtn" class="ios-btn ios-btn-secondary ios-btn-block" data-i18n="googleContinue">Continue with Google</button>
+                        </div>
+                        <div id="googleWebSlot"></div>
+                        <div style="display:flex;align-items:center;gap:10px;margin:12px 0 2px;color:var(--ios-tertiary-label);font-size:11px;">
+                            <span style="flex:1;height:1px;background:var(--ios-separator,#e5e5ea);"></span>
+                            <span data-i18n="googleOr">or use your account</span>
+                            <span style="flex:1;height:1px;background:var(--ios-separator,#e5e5ea);"></span>
+                        </div>
+                    </div>
                     <form id="loginForm" novalidate>
                         <div class="ios-form-group">
                             <div class="ios-input-wrap">
-                                <input type="text" class="ios-form-input" id="loginUser" placeholder="Username or e-mail" data-i18n-placeholder="usernameOrEmailPh" required autocomplete="off">
+                                <input type="email" class="ios-form-input" id="loginUser" placeholder="E-mail" data-i18n-placeholder="usernameOrEmailPh" required autocomplete="username">
                                 <div class="ios-input-icon">
                                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
                                 </div>
@@ -2008,7 +2019,7 @@
 
                     <div id="forgotStep1">
                         <div class="ios-form-group">
-                            <input type="text" class="ios-form-input" id="forgotUser" placeholder="Username" data-i18n-placeholder="usernamePh" autocomplete="off">
+                            <input type="email" class="ios-form-input" id="forgotUser" placeholder="E-mail" data-i18n-placeholder="usernamePh" autocomplete="username">
                         </div>
                         <button type="button" class="ios-btn ios-btn-primary ios-btn-block" id="forgotStartBtn">Continue</button>
                     </div>
@@ -2057,6 +2068,12 @@
                         <button type="button" class="ios-btn ios-btn-primary ios-btn-block" id="forgotFinishBtn">Set new password</button>
                     </div>
 
+                    <div id="forgotStep5" class="pcl-hidden">
+                        <div class="pcl-step" data-i18n="forgotServerTitle">Reset by e-mail</div>
+                        <p class="pcl-hint" id="forgotServerHint"></p>
+                        <button type="button" class="ios-btn ios-btn-primary ios-btn-block" id="forgotSendResetEmailBtn" data-i18n="sendResetLink">Send reset link</button>
+                    </div>
+
                     <div class="ios-auth-error" id="forgotError"></div>
                     <div id="forgotInfo" class="pcl-hint" style="margin-top:6px;"></div>
                     <div class="ios-auth-switch"><button type="button" id="showLoginFromForgot" style="color:var(--ios-blue);font-weight:600;background:none;border:none;font-size:12px;cursor:pointer;">Back to Sign In</button></div>
@@ -2065,12 +2082,8 @@
                 <div id="registerPanel" class="ios-auth-panel">
                     <form id="registerForm" novalidate>
                         <div class="ios-form-group">
-                            <div class="ios-input-wrap">
-                                <input type="text" class="ios-form-input" id="regUser" placeholder="Choose a username" data-i18n-placeholder="regUserPh" required autocomplete="off">
-                                <div class="ios-input-icon">
-                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-                                </div>
-                            </div>
+                            <input type="email" class="ios-form-input" id="regEmail" placeholder="E-mail" data-i18n-placeholder="emailPh" required autocomplete="username">
+                            <div style="font-size:10px;color:var(--ios-tertiary-label);margin-top:4px;" data-i18n="regEmailHint">This is your sign-in name. Reset codes go here.</div>
                         </div>
                         <div class="ios-form-group">
                             <div class="ios-input-wrap">
@@ -2092,12 +2105,8 @@
                             </div>
                         </div>
                         <div class="ios-form-group">
-                            <input type="email" class="ios-form-input" id="regEmail" placeholder="Recovery e-mail" data-i18n-placeholder="secRecoveryEmail" required autocomplete="off">
-                            <div style="font-size:10px;color:var(--ios-tertiary-label);margin-top:4px;">A reset code is sent here if you forget your password.</div>
-                        </div>
-                        <div class="ios-form-group">
-                            <input type="tel" class="ios-form-input" id="regPhone" placeholder="Phone number (e.g. +250788000000)" data-i18n-placeholder="regPhonePh" required autocomplete="off">
-                            <div style="font-size:10px;color:var(--ios-tertiary-label);margin-top:4px;">Backup way to confirm your identity.</div>
+                            <input type="tel" class="ios-form-input" id="regPhone" placeholder="Phone number (e.g. +250788000000)" data-i18n-placeholder="regPhonePh" required autocomplete="tel">
+                            <div style="font-size:10px;color:var(--ios-tertiary-label);margin-top:4px;" data-i18n="regPhoneHint">Used to recover your account if you lose access.</div>
                         </div>
                         <button type="submit" class="ios-btn ios-btn-primary ios-btn-block" data-i18n="createAccount">Create Account</button>
                         <div class="ios-auth-error" id="regError"></div>
@@ -2404,24 +2413,6 @@
                 <button type="button" class="ios-btn ios-btn-secondary" id="cameraVideoSwitchBtn">Switch</button>
                 <button type="button" class="ios-btn ios-btn-danger" id="cameraRecordBtn" style="background:var(--ios-red);color:#fff;">● Record</button>
             </div>
-        </div>
-    </div>
-
-    <!-- BACKUP REMINDER MODAL -->
-    <div class="ios-modal-overlay" id="backupReminderModal" role="dialog" aria-modal="true">
-        <div class="ios-modal">
-            <div class="ios-modal-handle"></div>
-            <div class="ios-confirm-icon">💾</div>
-            <div class="ios-modal-title" data-i18n="backupReminderTitle">Back Up Your Patient Data</div>
-            <p class="ios-confirm-text" id="backupReminderText">It's been a while since your last backup. Export a file and/or email a lite backup so you can restore after reinstall.</p>
-            <div class="ios-form-group" style="margin-bottom:10px;">
-                <input type="email" class="ios-form-input" id="backupReminderEmail" placeholder="Email for backup (optional)" data-i18n-placeholder="backupEmailPh">
-            </div>
-            <div class="ios-form-actions" style="grid-template-columns:1fr 1fr;">
-                <button type="button" class="ios-btn ios-btn-secondary" id="backupReminderLaterBtn" data-i18n="remindLater">Remind Me Later</button>
-                <button type="button" class="ios-btn ios-btn-primary" id="backupReminderExportBtn">💾 Export File</button>
-            </div>
-            <button type="button" class="ios-btn ios-btn-primary" id="backupReminderEmailBtn" style="width:100%;margin-top:8px;">📧 Export + Email Backup</button>
         </div>
     </div>
 
@@ -2975,6 +2966,10 @@
                 <div class="ios-auth-error" id="lockError"></div>
             </form>
 
+            <div class="pcl-lock-links" id="lockOtherRow" style="display:none;">
+                <button type="button" id="lockOtherBtn" class="pcl-link" data-i18n="lockUsePassword">Use password instead</button>
+            </div>
+
             <div class="pcl-lock-links">
                 <button type="button" id="lockForgotBtn" class="pcl-link" data-i18n="lockForgot">Forgot password?</button>
                 <span class="pcl-dot">·</span>
@@ -2998,6 +2993,20 @@
             <div class="ios-form-actions" style="margin-top:12px;">
                 <button class="ios-btn ios-btn-primary" id="recCodeDoneBtn" style="flex:1;" data-i18n="recCodeDone">I have saved it</button>
             </div>
+        </div>
+    </div>
+
+    <!-- ==================== PIN SETUP (Google accounts) ==================== -->
+    <div class="ios-modal-overlay" id="pinSetupModal" role="dialog" aria-modal="true">
+        <div class="ios-modal">
+            <div class="ios-modal-handle"></div>
+            <div class="ios-modal-icon">🔒</div>
+            <div class="ios-modal-title" data-i18n="pinSetupTitle">Choose a 4-digit PIN</div>
+            <p class="ios-confirm-text" data-i18n="pinSetupText">You type this PIN every time you open PClinic. It unlocks your records on this and any other device.</p>
+            <input type="password" class="ios-form-input" id="pinSetupNew" inputmode="numeric" maxlength="12" autocomplete="off" placeholder="4-digit PIN" data-i18n-placeholder="pinSetupPh">
+            <input type="password" class="ios-form-input" id="pinSetupNew2" inputmode="numeric" maxlength="12" autocomplete="off" placeholder="Confirm PIN" data-i18n-placeholder="pinSetupPh2" style="margin-top:8px;">
+            <div class="ios-auth-error" id="pinSetupError"></div>
+            <button type="button" class="ios-btn ios-btn-primary ios-btn-block" id="pinSetupSaveBtn" style="margin-top:10px;" data-i18n="pinSetupSave">Save PIN</button>
         </div>
     </div>
 
@@ -3277,7 +3286,10 @@
             // Capture the key NOW: a logout that lands before this queued write
             // runs must not silently void it (that would lose the edit).
             var dek = sessionDEK;
-            if (!dek) return Promise.resolve(false);
+            if (!dek) {
+                showToast(t('saveFailedNotice'), 'error');
+                return Promise.resolve(false);
+            }
             pendingWrites++;
             showSavingPill(true);
             writeQueue = writeQueue.then(function() {
@@ -3456,6 +3468,11 @@
         }
         function setLockMs(ms) { try { localStorage.setItem(lockPrefKey('_ms'), String(ms)); } catch (e) {} }
         function requireUnlockOnOpen() {
+            // An account with a PIN is always asked for it on a cold start: the
+            // PIN is the sign-in the user is meant to remember. The preference
+            // below only matters for password-only accounts.
+            var u = currentUser || lockedUser;
+            if (u && hasPin(u)) return true;
             return localStorage.getItem(lockPrefKey('_open')) !== '0';   // default: on
         }
         function setRequireUnlockOnOpen(on) {
@@ -3464,17 +3481,68 @@
         function isLocked() { return lockedUser !== null; }
 
         var lockScreenEl = null, lockPassEl = null, lockUserEl = null, lockErrorEl = null, lockNoteEl = null;
+        // false => the lock screen asks for the PIN; true => the user asked for the
+        // password field instead. Reset on every fresh lock.
+        var lockUsePassword = false;
+
+        function lockCanUsePassword() {
+            var u = lockedUser;
+            return !!(u && ((u.pw && u.pw.v === 2) || u.passHash));
+        }
+        function lockPinMode() {
+            var u = lockedUser;
+            if (!u || !hasPin(u)) return false;
+            return !lockUsePassword || !lockCanUsePassword();
+        }
+
+        function applyLockMode() {
+            var pinMode = lockPinMode();
+            var pinAccount = !!(lockedUser && hasPin(lockedUser));
+            if (lockPassEl) {
+                lockPassEl.value = '';
+                lockPassEl.setAttribute('inputmode', pinMode ? 'numeric' : 'text');
+                lockPassEl.setAttribute('autocomplete', pinMode ? 'off' : 'current-password');
+                var phKey = pinMode ? 'lockPinPh' : 'lockPasswordPh';
+                lockPassEl.setAttribute('data-i18n-placeholder', phKey);
+                lockPassEl.setAttribute('placeholder', t(phKey));
+            }
+            var otherRow = document.getElementById('lockOtherRow');
+            var otherBtn = document.getElementById('lockOtherBtn');
+            if (otherRow) otherRow.style.display = (pinAccount && lockCanUsePassword()) ? '' : 'none';
+            if (otherBtn) {
+                var otherKey = pinMode ? 'lockUsePassword' : 'lockUsePin';
+                otherBtn.setAttribute('data-i18n', otherKey);
+                otherBtn.textContent = t(otherKey);
+            }
+            var lf = document.getElementById('lockForgotBtn');
+            if (lf) {
+                var fk = pinAccount ? 'lockPinForgot' : 'lockForgot';
+                lf.setAttribute('data-i18n', fk);
+                lf.textContent = t(fk);
+            }
+            // Keep the helper line in step with the field the user is typing in.
+            if (lockNoteEl) {
+                var nk = lockNoteEl.getAttribute('data-i18n');
+                if (nk === 'lockNotePin' || nk === 'lockNotePw') {
+                    var want = pinMode ? 'lockNotePin' : 'lockNotePw';
+                    lockNoteEl.setAttribute('data-i18n', want);
+                    lockNoteEl.textContent = t(want);
+                }
+            }
+            if (lockErrorEl) lockErrorEl.textContent = '';
+        }
 
         function lockApp(note) {
             if (!currentUser || isLocked()) return;
             lockedUser = currentUser;
+            lockUsePassword = false;
             sessionDEK = null;                 // drop the decryption key
             resetUserState();                  // scrub memory + DOM (reuses the isolation fix)
             currentUser = null;
             showLockScreen(note || '');
         }
 
-        function showLockScreen(note) {
+        function showLockScreen(note, noteKey) {
             // Always re-resolve: hideLockScreen() may have cached lockScreenEl earlier
             lockScreenEl = document.getElementById('lockScreen');
             lockPassEl   = document.getElementById('lockPassword');
@@ -3482,10 +3550,14 @@
             lockErrorEl  = document.getElementById('lockError');
             lockNoteEl   = document.getElementById('lockNote');
             if (!lockScreenEl) return;
+            lockUsePassword = false;
             if (lockUserEl) lockUserEl.textContent = (lockedUser && lockedUser.username) || '';
-            if (lockNoteEl) lockNoteEl.textContent = note || '';
-            if (lockErrorEl) lockErrorEl.textContent = '';
-            if (lockPassEl) lockPassEl.value = '';
+            if (lockNoteEl) {
+                lockNoteEl.textContent = note || '';
+                if (noteKey) lockNoteEl.setAttribute('data-i18n', noteKey);
+                else lockNoteEl.removeAttribute('data-i18n');
+            }
+            applyLockMode();
             lockScreenEl.style.display = 'flex';
             try { document.body.classList.add('is-locked'); } catch (e) {}
             setTimeout(function() { try { lockPassEl && lockPassEl.focus(); } catch (e) {} }, 120);
@@ -3496,35 +3568,60 @@
             try { document.body.classList.remove('is-locked'); } catch (e) {}
         }
 
-        function unlockApp(password) {
+        // Counts exactly one failed attempt per submitted value, no matter how many
+        // credentials were tried, so the escalating delay is not charged twice.
+        function unlockFail(msg) {
+            noteAuthFailure();
+            if (lockErrorEl) lockErrorEl.textContent = authBusyMessage() || msg || t('wrongPassword');
+            return false;
+        }
+
+        function unlockApp(secret) {
             var u = lockedUser;
             if (!u) return Promise.resolve(false);
-            var wait = authThrottleMs();
-            if (wait > 0) {
+            if (authThrottleMs() > 0) {
                 if (lockErrorEl) lockErrorEl.textContent = authBusyMessage();
                 return Promise.resolve(false);
             }
+            if (lockPinMode()) {
+                return signInWithPin(u, secret).then(function(res) {
+                    if (res.ok) {
+                        noteAuthSuccess();
+                        return finishUnlock(u, secret, true);
+                    }
+                    // A password typed into the PIN field still works.
+                    if (!lockCanUsePassword()) return unlockFail(t('wrongPassword'));
+                    return unlockWithPassword(u, secret, true);
+                });
+            }
+            return unlockWithPassword(u, secret, false);
+        }
+
+        function unlockWithPassword(u, password, pinAlreadyTried) {
             if (u.pw && u.pw.v === 2) {
                 return deriveAccountKeys(password, u.pw.salt, u.pw.iter).then(function(k) {
-                    if (!safeEq(k.verifier, u.pw.hash)) return unlockWithPin(u, password);
-                    noteAuthSuccess();
-                    return unwrapDEK(k.kek, u.dek).then(function(dek) {
-                        sessionDEK = dek;
-                        return finishUnlock(u, password);
-                    });
+                    if (safeEq(k.verifier, u.pw.hash)) {
+                        noteAuthSuccess();
+                        return unwrapDEK(k.kek, u.dek).then(function(dek) {
+                            sessionDEK = dek;
+                            return finishUnlock(u, password);
+                        });
+                    }
+                    if (pinAlreadyTried) return unlockFail(t('wrongPassword'));
+                    return unlockWithPin(u, password);
                 }).catch(function(e) {
                     console.warn('unlock failed', e);
                     if (lockErrorEl) lockErrorEl.textContent = t('couldNotUnlock');
                     return false;
                 });
             }
-            if (!u.pw && hasPin(u)) return unlockWithPin(u, password);
-            // legacy (pre-v2) account: verify then migrate before unlocking
-            if (simpleHash(password) !== u.passHash) {
-                noteAuthFailure();
-                if (lockErrorEl) lockErrorEl.textContent = authBusyMessage() || t('wrongPassword');
-                return Promise.resolve(false);
+            if (!u.pw && hasPin(u)) {
+                return pinAlreadyTried
+                    ? Promise.resolve(unlockFail(t('wrongPassword')))
+                    : unlockWithPin(u, password);
             }
+            // legacy (pre-v2) account: verify then migrate before unlocking
+            if (simpleHash(password) !== u.passHash) return Promise.resolve(unlockFail(t('wrongPassword')));
             noteAuthSuccess();
             return migrateAccount(u, password).then(function(res) {
                 sessionDEK = res.dek;
@@ -3536,18 +3633,9 @@
         }
 
         function unlockWithPin(u, pin) {
-            if (!hasPin(u)) {
-                noteAuthFailure();
-                var extra = authBusyMessage();
-                if (lockErrorEl) lockErrorEl.textContent = extra || t('wrongPassword');
-                return Promise.resolve(false);
-            }
+            if (!hasPin(u)) return Promise.resolve(unlockFail(t('wrongPassword')));
             return signInWithPin(u, pin).then(function(res) {
-                if (!res.ok) {
-                    noteAuthFailure();
-                    if (lockErrorEl) lockErrorEl.textContent = authBusyMessage() || t('wrongPassword');
-                    return false;
-                }
+                if (!res.ok) return unlockFail(t('wrongPassword'));
                 noteAuthSuccess();
                 return finishUnlock(u, pin, true);
             });
@@ -3663,7 +3751,7 @@
         // ============================================================================
         var MediaStore = (function () {
             var MODE = 'unknown';               // 'fs' | 'idb' | 'none'
-            var FS = null, FSDir = null;
+            var FS = null, FSDir = null, DB = null;
             var DIR_NAME = 'pclinic_media';
             var DB_NAME = 'pclinic_media', STORE = 'files';
 
@@ -3839,6 +3927,26 @@
             return (window.Capacitor && Capacitor.Plugins && Capacitor.Plugins.GoogleDrive) || null;
         }
 
+        // True when media bytes may leave the patient record and live only in
+        // the local store. That is only safe when another copy can travel to
+        // other devices — the Drive mirror in the native app. In a plain
+        // browser the inline copy is the only one that syncs, so keep it there.
+        function mediaStoreUsable() {
+            return MediaStore.available() && !!sessionDEK && !!drivePlugin();
+        }
+
+        // File name extension for the Drive copy, from the real MIME type.
+        function driveExtFor(mime) {
+            var m = String(mime || '').toLowerCase();
+            if (m.indexOf('video/') === 0) return m.indexOf('mp4') > -1 ? 'mp4' : 'webm';
+            if (m.indexOf('png') > -1) return 'png';
+            if (m.indexOf('webp') > -1) return 'webp';
+            if (m.indexOf('heic') > -1) return 'heic';
+            if (m.indexOf('heif') > -1) return 'heif';
+            if (m.indexOf('gif') > -1) return 'gif';
+            return 'jpg';
+        }
+
         // Upload one media item's bytes to Drive; returns the Drive file id.
         function driveUploadMedia(item) {
             var G = drivePlugin();
@@ -3851,8 +3959,7 @@
                     : null);
             return bytesP.then(function (bytes) {
                 if (!bytes || !bytes.length) return null;
-                var ext = (item.mime || '').indexOf('video') === 0 ? 'mp4'
-                    : (item.mime || '').indexOf('png') > -1 ? 'png' : 'jpg';
+                var ext = driveExtFor(item.mime);
                 return G.uploadMedia({
                     name: (item.id || 'media') + '.' + ext,
                     mimeType: item.mime || 'application/octet-stream',
@@ -3878,6 +3985,19 @@
                 console.warn('drive media download failed', e);
                 return null;
             });
+        }
+
+        // Delete one media file from the user's Drive. Best effort: a missing
+        // file (or being offline) must never block the local delete.
+        function driveDeleteMedia(fileId) {
+            var G = drivePlugin();
+            if (!G || !fileId || typeof G.deleteMedia !== 'function') return Promise.resolve(false);
+            return Promise.resolve().then(function () { return G.deleteMedia({ fileId: fileId }); })
+                .then(function (r) { return !!(r && r.ok); })
+                .catch(function (e) {
+                    console.warn('drive media delete failed', e);
+                    return false;
+                });
         }
 
         // Upload every local media item that has no Drive copy yet.
@@ -3942,6 +4062,83 @@
             mediaUrlCache = {};
         }
 
+        function b64Bytes(dataUrl) {
+            try {
+                var comma = String(dataUrl || '').indexOf(',');
+                if (comma < 0) return null;
+                return MediaStore.bytesFromB64(String(dataUrl).slice(comma + 1));
+            } catch (e) { return null; }
+        }
+
+        // Raw bytes of the main copy: local store first, then Google Drive.
+        function mainBytesFor(e) {
+            var ref = e.ref;
+            var inline = e.inlineData;
+            var p;
+            if (ref) p = MediaStore.get(ref);
+            else if (inline && String(inline).indexOf('data:') === 0) p = Promise.resolve(b64Bytes(inline));
+            else p = Promise.resolve(null);
+            return p.then(function (bytes) {
+                if ((bytes && bytes.length) || !e.driveId || typeof driveDownloadMedia !== 'function') return bytes;
+                // New device / cleared storage: fetch the bytes from Drive.
+                return driveDownloadMedia(e.driveId).then(function (dl) {
+                    if (!dl || !dl.bytes || !dl.bytes.length) return null;
+                    // Cache locally so the next view is instant.
+                    if (ref && MediaStore.available()) {
+                        return MediaStore.put(ref, dl.bytes).then(function () { return dl.bytes; })
+                            .catch(function () { return dl.bytes; });
+                    }
+                    return dl.bytes;
+                }).catch(function () { return null; });
+            });
+        }
+
+        // Shrink full-size bytes into a list preview.
+        function bytesToThumb(bytes, mime) {
+            return new Promise(function (resolve) {
+                var url = null;
+                try { url = URL.createObjectURL(new Blob([bytes], { type: mime || 'image/jpeg' })); }
+                catch (e) { resolve(null); return; }
+                var img = new Image();
+                var done = false;
+                function finish(out) {
+                    if (done) return;
+                    done = true;
+                    try { URL.revokeObjectURL(url); } catch (x) {}
+                    resolve(out);
+                }
+                img.onload = function () {
+                    var dataUrl = makeThumbFromImg(img, 320, 0.7);
+                    finish(dataUrl ? b64Bytes(dataUrl) : null);
+                };
+                img.onerror = function () { finish(null); };
+                img.src = url;
+            });
+        }
+
+        // List thumbnail: the small local copy when present, otherwise derived
+        // from the main copy (local or Drive) so a new device never downloads a
+        // full-size photo just to show the list.
+        function thumbBytesFor(e) {
+            var tp = e.thumbRef ? MediaStore.get(e.thumbRef)
+                : (e.inlineThumb && String(e.inlineThumb).indexOf('data:') === 0
+                    ? Promise.resolve(b64Bytes(e.inlineThumb)) : Promise.resolve(null));
+            return tp.then(function (tb) {
+                if (tb && tb.length) return { b: tb, jpeg: true };
+                if (e.type !== 'image') return { b: null };
+                return mainBytesFor(e).then(function (mb) {
+                    if (!mb || !mb.length) return { b: null };
+                    return bytesToThumb(mb, e.mime).then(function (small) {
+                        if (!small || !small.length) return { b: mb };
+                        if (e.thumbRef && MediaStore.available()) {
+                            MediaStore.put(e.thumbRef, small).catch(function () {});
+                        }
+                        return { b: small, jpeg: true };
+                    });
+                });
+            });
+        }
+
         // Resolve a media id to something usable in src="". Cached until logout/lock.
         function mediaUrlFor(mid, wantThumb) {
             var e = mediaIndex[mid];
@@ -3949,32 +4146,16 @@
             var key = mid + (wantThumb ? ':thumb' : ':main');
             if (mediaUrlCache[key]) return Promise.resolve(mediaUrlCache[key]);
 
-            var ref = wantThumb ? (e.thumbRef || e.ref) : e.ref;
-            var inline = wantThumb ? (e.inlineThumb || e.inlineData) : e.inlineData;
-            var p;
-            if (ref) p = MediaStore.get(ref);
-            else if (inline && String(inline).indexOf('data:') === 0) {
-                try { p = Promise.resolve(MediaStore.bytesFromB64(String(inline).split(',').slice(1).join(','))); }
-                catch (err) { p = Promise.resolve(null); }
-            } else p = Promise.resolve(null);
-
-            return p.then(function (bytes) {
-                // New device / cleared storage: fetch the bytes from Drive.
-                if ((!bytes || !bytes.length) && e.driveId && typeof driveDownloadMedia === 'function') {
-                    return driveDownloadMedia(e.driveId).then(function (dl) {
-                        if (!dl || !dl.bytes || !dl.bytes.length) return null;
-                        // Cache locally so the next view is instant.
-                        if (ref && MediaStore.available()) {
-                            return MediaStore.put(ref, dl.bytes).then(function () { return dl.bytes; }).catch(function () { return dl.bytes; });
-                        }
-                        return dl.bytes;
-                    }).catch(function () { return null; });
-                }
-                return bytes;
-            }).then(function (bytes) {
+            var p = wantThumb ? thumbBytesFor(e) : mainBytesFor(e);
+            return p.then(function (res) {
+                var bytes = wantThumb ? (res && res.b) : res;
                 if (!bytes || !bytes.length) return '';
-                var mime = e.mime || 'application/octet-stream';
-                if (wantThumb && !e.thumbRef && !e.inlineThumb) mime = e.mime; // full image used as its own thumb
+                var mime;
+                if (wantThumb) {
+                    mime = (res && res.jpeg) ? 'image/jpeg' : (e.mime || 'application/octet-stream');
+                } else {
+                    mime = e.mime || 'application/octet-stream';
+                }
                 var url = URL.createObjectURL(new Blob([bytes], { type: mime }));
                 mediaUrlCache[key] = url;
                 return url;
@@ -4148,7 +4329,7 @@
 
         // One-time move of media that is still inline (base64) out of the record.
         function migrateInlineMedia() {
-            if (!MediaStore.available() || !sessionDEK) return Promise.resolve(0);
+            if (!mediaStoreUsable()) return Promise.resolve(0);
             var jobs = [], changed = false;
             (patients || []).forEach(function (p) {
                 (p.media || []).forEach(function (it) {
@@ -4223,7 +4404,7 @@
                     file: '', thumbFile: '', data: '', thumbnail: ''
                 };
                 var work = [];
-                var canStore = MediaStore.available() && !!sessionDEK;
+                var canStore = mediaStoreUsable();
 
                 if (it.data && String(it.data).indexOf('data:') === 0) {
                     out.mime = out.mime || dataUrlMime(it.data);
@@ -4421,7 +4602,7 @@
         // A PIN is a second credential over the SAME data key, so signing in with
         // either one yields an identical session. It is stored the same way as a
         // password (PBKDF2 verifier + wrapped key) and never in plain text.
-        var PIN_MIN = 4, PIN_RECOMMENDED = 6;
+        var PIN_MIN = 4;
 
         function hasPin(u) { return !!(u && u.pin && u.pin.v === 2 && u.dekPin); }
 
@@ -4557,9 +4738,9 @@
         // the account locally, and unwrap the data key with the password.
         function signInFromServer(email, password) {
             // On a new device the account does not exist locally yet, so the
-            // server needs the e-mail identity — a username cannot find it.
+            // server needs the e-mail identity.
             if (String(email || '').indexOf('@') === -1) {
-                return Promise.resolve({ ok: false, error: 'On a new device, sign in with your e-mail address.' });
+                return Promise.resolve({ ok: false, error: t('signInEmailRequired') });
             }
             return apiLogin(email, password).then(function(res) {
                 if (!res.ok) {
@@ -4577,6 +4758,7 @@
                     var user = {
                         id: rec.id, username: rec.username, email: rec.email,
                         phone: rec.phone || '', createdAt: rec.createdAt,
+                        uid: rec.uid || apiUid(),
                         pw: rec.pw, dek: rec.dek, dekRec: rec.dekRec,
                         recovery: rec.recovery, recCodeEnc: rec.recCodeEnc,
                         pin: rec.pin, dekPin: rec.dekPin
@@ -4585,24 +4767,41 @@
                         apiClearToken();
                         return { ok: false, error: t('accountNotFound') };
                     }
+                    function persistServerCopy(dek) {
+                        sessionDEK = dek;
+                        var users = loadUsers().filter(function(x) { return x.id !== user.id; });
+                        users.push(user);
+                        saveUsers(users);
+                        var times = {};
+                        Object.keys(data.blobs || {}).forEach(function(key) {
+                            try { localStorage.setItem(key, JSON.stringify(data.blobs[key].data)); } catch (e) {}
+                            times[key] = data.blobs[key].updatedAt;
+                        });
+                        saveSyncTimes(user.id, times);
+                        return { ok: true, user: user, fromServer: true };
+                    }
                     return deriveAccountKeys(password, user.pw.salt, user.pw.iter).then(function(k) {
-                        if (!safeEq(k.verifier, user.pw.hash)) {
-                            apiClearToken();
-                            return { ok: false, error: t('wrongPassword') };
+                        if (safeEq(k.verifier, user.pw.hash)) {
+                            return unwrapDEK(k.kek, user.dek).then(persistServerCopy);
                         }
-                        return unwrapDEK(k.kek, user.dek).then(function(dek) {
-                            sessionDEK = dek;
-                            // Persist the account + encrypted blobs on this device.
-                            var users = loadUsers().filter(function(x) { return x.id !== user.id; });
-                            users.push(user);
-                            saveUsers(users);
-                            var times = {};
-                            Object.keys(data.blobs || {}).forEach(function(key) {
-                                try { localStorage.setItem(key, JSON.stringify(data.blobs[key].data)); } catch (e) {}
-                                times[key] = data.blobs[key].updatedAt;
+                        // Firebase accepted this password, but it does not open the
+                        // key wrapper stored in the cloud: the password was changed
+                        // by a reset. The escrowed copy of the same key is readable
+                        // with this fresh sign-in, so re-wrap it with the new
+                        // password and keep every device in step.
+                        return escrowRead(user.uid, user.id).then(function(dek) {
+                            if (!dek) {
+                                apiClearToken();
+                                return { ok: false, error: t('escrowMissing') };
+                            }
+                            return wrapDEKWithPassword(password, dek).then(function(sec) {
+                                user.pw = sec.pw;
+                                user.dek = sec.dek;
+                                var out = persistServerCopy(dek);
+                                return syncAccount(user).catch(function(e) {
+                                    console.warn('syncAccount after key rewrap failed', e);
+                                }).then(function() { return out; });
                             });
-                            saveSyncTimes(user.id, times);
-                            return { ok: true, user: user, fromServer: true };
                         });
                     });
                 });
@@ -4612,20 +4811,32 @@
             });
         }
 
-        // Sign-in entry point. The login field accepts a username OR an
-        // e-mail. Local accounts sign in locally first (works offline);
-        // unknown accounts fall through to the server (new device).
-        function signIn(username, password) {
-            var u = findUser(username) || findUserByEmail(username);
+        // Sign-in entry point. Accounts are identified by e-mail only.
+        // Local accounts sign in locally first (works offline); unknown
+        // accounts fall through to the server (new device).
+        function signIn(email, password) {
+            var input = String(email || '').trim();
+            if (input.indexOf('@') === -1) {
+                return Promise.resolve({ ok: false, error: t('signInEmailRequired') });
+            }
+            var u = findUserByEmail(input) || findUser(input);
             if (u) {
                 return signInLocal(u, password).then(function(res) {
+                    if (!res.ok && apiEnabled() && u.email) {
+                        // The password may have been reset on another device or by
+                        // e-mail: the server copy (and its escrow) can rebuild this
+                        // account with the new password.
+                        return signInFromServer(u.email, password).then(function(sres) {
+                            return sres.ok ? sres : res;
+                        });
+                    }
                     if (!res.ok) return res;
                     return serverSyncAfterSignIn(u, password, res.viaPin).then(function() {
                         return res;
                     });
                 });
             }
-            if (apiEnabled()) return signInFromServer(username, password);
+            if (apiEnabled()) return signInFromServer(input, password);
             return Promise.resolve({ ok: false, error: t('accountNotFound') });
         }
 
@@ -4654,10 +4865,13 @@
                             return Promise.all(jobs);
                         });
                     }).then(function() {
+                        // A freshly migrated key invalidates any earlier escrow copy.
+                        try { delete u.escrowVersion; } catch (e) {}
                         persistUser(u);
-                        return syncAccount(u).then(function() {
-                            return { user: u, dek: dek, recoveryCode: code };
-                        });
+                        return syncAccount(u).then(function() { return ensureEscrow(u, true); })
+                            .then(function() {
+                                return { user: u, dek: dek, recoveryCode: code };
+                            });
                     });
                 });
             });
@@ -4696,6 +4910,7 @@
                 var u = createUser(username, password, '');      // id / username / createdAt
                 u.email = emailNorm;
                 u.phone = normalizePhone(phone);
+                if (apiEnabled() && apiUid()) u.uid = apiUid();
                 return generateDEK().then(function(dek) {
                     sessionDEK = dek;
                     var code = generateRecoveryCode();
@@ -4754,8 +4969,9 @@
         }
 
         // --------------------------------------------------- password reset (step 1)
-        function startPasswordReset(username) {
-            var u = findUser(username);
+        function startPasswordReset(email) {
+            var input = String(email || '').trim();
+            var u = findUserByEmail(input) || findUser(input);
             if (!u) return { ok: false, error: t('accountNotFound') };
             resetState = { user: u, otpOk: false, phoneOk: false, keepData: false, dek: null };
             return {
@@ -4919,6 +5135,8 @@
                         try { delete u.pin; delete u.dekPin; } catch (e) {}
                     }
                     u.otp = null;
+                    // The data key just changed: the previous escrow copy is dead.
+                    try { delete u.escrowVersion; } catch (e) {}
                     var code = generateRecoveryCode();
                     return attachRecoveryCode(u, code).then(function() {
                         return encryptJSON(sessionDEK, code).then(function(encBlob) {
@@ -4930,6 +5148,8 @@
                             var serverJob = Promise.resolve();
                             if (apiEnabled()) {
                                 serverJob = syncAccount(u).then(function() {
+                                    return ensureEscrow(u, true);
+                                }).then(function() {
                                     if (!asPin && resetState.recoveryCode) {
                                         return apiResetPassword(u.email, resetState.recoveryCode, newSecret)
                                             .then(function(res) {
@@ -4982,6 +5202,393 @@
             showModal(modal);
         }
 
+        // ============================================================================
+        //  GOOGLE SIGN-IN AND KEY ESCROW
+        //  Google is identity only. The data key is still unwrapped by the user's
+        //  PIN (or password), so this section proves who they are, and the escrow
+        //  below is what lets a forgotten PIN be replaced without losing records.
+        // ============================================================================
+        var googlePendingReset = null;   // {uid, email} set by "Forgot PIN?"
+        var pinSetupState = { user: null, dek: null, mode: 'new' };
+        var gisLoading = null;
+
+        function googleConfigured() {
+            if (!apiEnabled()) return false;
+            // The native plugin takes its client ID from google-services.json,
+            // so an APK needs no value pasted here; GIS on the web still does.
+            return !!(OAUTH_CLIENT_ID || nativeGooglePlugin());
+        }
+
+        function nativeGooglePlugin() {
+            try {
+                var P = window.Capacitor && Capacitor.Plugins;
+                if (!P) return null;
+                if (P.GoogleAuth && typeof P.GoogleAuth.signIn === 'function') return P.GoogleAuth;
+                if (P.FirebaseAuthentication && typeof P.FirebaseAuthentication.signInWithGoogle === 'function') {
+                    return P.FirebaseAuthentication;
+                }
+                return null;
+            } catch (e) { return null; }
+        }
+        function pluginSignIn(plugin) {
+            return typeof plugin.signInWithGoogle === 'function' ? plugin.signInWithGoogle() : plugin.signIn();
+        }
+        function pluginIdToken(res) {
+            return (res && res.authentication && res.authentication.idToken) ||
+                   (res && res.credential && res.credential.idToken) || '';
+        }
+
+        function findUserByUid(uid) {
+            if (!uid) return null;
+            return loadUsers().find(function (u) { return u.uid === uid; }) || null;
+        }
+
+        // ------------------------------------------------------------- key escrow
+        // A copy of the SAME data key, readable only by this account with a fresh
+        // Google sign-in (enforced in Firestore rules by auth.uid + auth_time).
+        // It is never a second way to open the app: the PIN still gates the DEK.
+        function escrowPath(uid) {
+            return '/escrow/' + encodeURIComponent(uid);
+        }
+
+        function escrowRead(uid, accountId) {
+            if (!apiEnabled() || !apiToken() || !uid) return Promise.resolve(null);
+            return fbStore('GET', escrowPath(uid)).then(function (res) {
+                if (!res || !res.ok) return null;
+                var acc = res.fields && res.fields.accountId && res.fields.accountId.stringValue;
+                if (accountId && acc && acc !== accountId) return null;
+                var b64 = res.fields && res.fields.dek && res.fields.dek.stringValue;
+                if (!b64) return null;
+                return crypto.subtle.importKey('raw', b64dec(b64), { name: 'AES-GCM', length: 256 }, true,
+                    ['encrypt', 'decrypt']);
+            }).catch(function (e) {
+                console.warn('escrow read failed', e);
+                return null;
+            });
+        }
+
+        function ensureEscrow(u, force) {
+            if (!apiEnabled() || !apiToken() || !u || !u.uid || !sessionDEK) return Promise.resolve(false);
+            if (!force && u.escrowVersion === 1) return Promise.resolve(true);
+            return crypto.subtle.exportKey('raw', sessionDEK).then(function (raw) {
+                return fbStore('PATCH', escrowPath(u.uid) +
+                    '?updateMask.fieldPaths=dek&updateMask.fieldPaths=accountId&updateMask.fieldPaths=updatedAt', {
+                    fields: {
+                        dek: { stringValue: b64enc(raw) },
+                        accountId: { stringValue: u.id },
+                        updatedAt: { stringValue: new Date().toISOString() }
+                    }
+                });
+            }).then(function (res) {
+                if (!res || !res.ok) { console.warn('escrow write failed', res && res.error); return false; }
+                u.escrowVersion = 1;
+                persistUser(u);
+                return true;
+            }).catch(function (e) {
+                console.warn('escrow write failed', e);
+                return false;
+            });
+        }
+
+        // ------------------------------------------------------------ Google sign-in
+        function loadGis() {
+            if (window.google && google.accounts && google.accounts.id) return Promise.resolve(true);
+            if (gisLoading) return gisLoading;
+            gisLoading = new Promise(function (resolve) {
+                var s = document.createElement('script');
+                s.src = 'https://accounts.google.com/gsi/client';
+                s.async = true;
+                s.defer = true;
+                s.onload = function () { resolve(!!(window.google && google.accounts && google.accounts.id)); };
+                s.onerror = function () { resolve(false); };
+                document.head.appendChild(s);
+            });
+            return gisLoading;
+        }
+
+        function googleShowError(msg) {
+            var el = document.getElementById('loginError');
+            if (el) el.textContent = msg || t('googleFailed');
+        }
+
+        function onGoogleCredential(resp) {
+            if (!resp || !resp.credential) return;
+            enterWithGoogleToken(resp.credential).then(function (r) {
+                if (r && !r.ok) googleShowError(r.error);
+            });
+        }
+
+        function initGoogleAuth() {
+            var wrap = document.getElementById('googleAuthWrap');
+            if (!wrap) return;
+            if (!googleConfigured()) { wrap.classList.add('pcl-hidden'); return; }
+            wrap.classList.remove('pcl-hidden');
+            var nativeSlot = document.getElementById('googleNativeSlot');
+            var webSlot = document.getElementById('googleWebSlot');
+            if (nativeGooglePlugin()) {
+                if (webSlot) webSlot.style.display = 'none';
+                return;
+            }
+            if (nativeSlot) nativeSlot.style.display = 'none';
+            loadGis().then(function (ok) {
+                if (!ok || !webSlot) { wrap.classList.add('pcl-hidden'); return; }
+                try {
+                    google.accounts.id.initialize({
+                        client_id: OAUTH_CLIENT_ID,
+                        callback: onGoogleCredential,
+                        auto_select: false,
+                        cancel_on_tap_outside: true
+                    });
+                    google.accounts.id.renderButton(webSlot, {
+                        theme: 'outline', size: 'large', shape: 'pill',
+                        text: 'continue_with', width: 300
+                    });
+                } catch (e) {
+                    console.warn('Google button failed', e);
+                    wrap.classList.add('pcl-hidden');
+                }
+                if (googlePendingReset) {
+                    try { google.accounts.id.prompt(); } catch (e) {}
+                }
+            });
+        }
+
+        // Web: GIS renders its own button and calls back into onGoogleCredential.
+        // Native: a Capacitor GoogleAuth plugin (present only in the APK) returns
+        // the ID token directly. Without either, the button is never shown.
+        function startGoogleSignIn() {
+            var plugin = nativeGooglePlugin();
+            if (plugin) {
+                return Promise.resolve().then(function () { return pluginSignIn(plugin); }).then(function (res) {
+                    var token = pluginIdToken(res);
+                    if (!token) throw new Error('googleNoToken');
+                    return enterWithGoogleToken(token);
+                }).catch(function (e) {
+                    console.warn('native Google sign-in failed', e);
+                    return { ok: false, error: t('googleFailed') };
+                });
+            }
+            if (!googleConfigured()) return Promise.resolve({ ok: false, error: t('googleFailed') });
+            return loadGis().then(function (ok) {
+                if (!ok) return { ok: false, error: t('googleFailed') };
+                try { google.accounts.id.prompt(); } catch (e) {}
+                return { ok: true, pending: true };
+            });
+        }
+
+        function googleAuthError(res) {
+            var m = String((res && res.error) || '');
+            if (/EMAIL_EXISTS|FEDERATED_USER_ID_ALREADY_LINKED|CREDENTIAL_ALREADY_IN_USE/.test(m)) {
+                return t('googleAccountExists');
+            }
+            if (res && res._status === 0) return t('googleFailed') + ' (network)';
+            return t('googleFailed');
+        }
+
+        function enterWithGoogleToken(idToken) {
+            return fbAuth('signInWithIdToken', {
+                providerId: 'google.com', idToken: idToken, returnSecureToken: true
+            }).then(function (res) {
+                if (!res.ok) return { ok: false, error: googleAuthError(res) };
+                apiSetToken(res.token, res.email, res.refreshToken, res.uid);
+                return continueGoogleSession(res);
+            }).catch(function (e) {
+                console.warn('Google sign-in failed', e);
+                return { ok: false, error: t('googleFailed') };
+            });
+        }
+
+        function continueGoogleSession(res) {
+            var local = findUserByUid(res.uid);
+            if (!local && res.email) {
+                var byMail = findUserByEmail(res.email);
+                if (byMail && byMail.uid === res.uid) local = byMail;
+                // An account that already exists under another Firebase uid has its
+                // records there; adopting it here would strand them.
+                if (!local && byMail) {
+                    apiClearToken();
+                    return { ok: false, error: t('googleAccountExists') };
+                }
+            }
+            if (local) return beginGoogleOpen(local);
+            return apiGetData().then(function (data) {
+                if (!data || !data.ok) return { ok: false, error: t('googleFailed') };
+                if (data.account) {
+                    var user = accountFromCloud(data.account, data.blobs, res);
+                    if (user) return beginGoogleOpen(user);
+                }
+                return createGoogleAccount(res);
+            });
+        }
+
+        function accountFromCloud(rec, blobs, res) {
+            if (!rec || !rec.id) return null;
+            var user = {
+                id: rec.id, username: rec.username, email: rec.email || res.email,
+                phone: rec.phone || '', createdAt: rec.createdAt,
+                pw: rec.pw || null, dek: rec.dek || null, dekRec: rec.dekRec || null,
+                recovery: rec.recovery || null, recCodeEnc: rec.recCodeEnc || null,
+                pin: rec.pin || null, dekPin: rec.dekPin || null,
+                uid: rec.uid || res.uid, provider: rec.provider || 'google'
+            };
+            // No wrapped key on file means there is nothing to unlock.
+            if (!hasPin(user) && !(user.pw && user.pw.v === 2)) return null;
+            var users = loadUsers().filter(function (x) { return x.id !== user.id; });
+            users.push(user);
+            saveUsers(users);
+            var times = {};
+            Object.keys(blobs || {}).forEach(function (key) {
+                try { localStorage.setItem(key, JSON.stringify(blobs[key].data)); } catch (e) {}
+                times[key] = blobs[key].updatedAt;
+            });
+            saveSyncTimes(user.id, times);
+            return user;
+        }
+
+        function beginGoogleOpen(u) {
+            if (googlePendingReset && googlePendingReset.uid === u.uid) {
+                return startPinResetFromEscrow(u);
+            }
+            // Identity is proven; the PIN (or password) still has to unwrap the key.
+            lockedUser = u;
+            lockUsePassword = false;
+            hideModal(document.getElementById('pinSetupModal'));
+            showView(queueView);
+            var noteKey = hasPin(u) ? 'lockNotePin' : 'lockNotePw';
+            showLockScreen(t(noteKey), noteKey);
+            return { ok: true, locked: true };
+        }
+
+        function startPinResetFromEscrow(u) {
+            return escrowRead(u.uid, u.id).then(function (dek) {
+                if (!dek) {
+                    googlePendingReset = null;
+                    return { ok: false, error: t('escrowMissing') };
+                }
+                sessionDEK = dek;
+                showPinSetup(u, dek, 'reset');
+                return { ok: true, reset: true };
+            });
+        }
+
+        function googleUsername(email) {
+            var base = String(email || 'google').split('@')[0].toLowerCase().replace(/[^a-z0-9_]/g, '');
+            if (base.length < 3) base = 'user' + base;
+            base = base.slice(0, 20) || 'user';
+            var name = base, n = 1;
+            while (findUser(name)) name = base + (++n);
+            return name;
+        }
+
+        function createGoogleAccount(res) {
+            var u = createUser(googleUsername(res.email), '', '');
+            u.email = String(res.email || '').toLowerCase();
+            u.uid = res.uid;
+            u.provider = 'google';
+            u.pw = null;
+            u.dek = null;
+            return generateDEK().then(function (dek) {
+                sessionDEK = dek;
+                persistUser(u);
+                return secureSet('pclinic_data_' + u.id, []).then(function () {
+                    return syncAccount(u);
+                }).then(function () {
+                    return ensureEscrow(u, true);
+                }).then(function () {
+                    showPinSetup(u, dek, 'new');
+                    return { ok: true, needsPin: true };
+                });
+            }).catch(function (e) {
+                console.warn('Google account creation failed', e);
+                return { ok: false, error: t('googleFailed') };
+            });
+        }
+
+        // ---------------------------------------------------------- PIN setup modal
+        function showPinSetup(u, dek, mode) {
+            pinSetupState = { user: u, dek: dek, mode: mode || 'new' };
+            var m = document.getElementById('pinSetupModal');
+            var err = document.getElementById('pinSetupError');
+            if (err) err.textContent = '';
+            ['pinSetupNew', 'pinSetupNew2'].forEach(function (id) {
+                var el = document.getElementById(id); if (el) el.value = '';
+            });
+            var title = m && m.querySelector('.ios-modal-title');
+            if (title) {
+                var key = mode === 'reset' ? 'pinResetTitle' : 'pinSetupTitle';
+                title.textContent = t(key);
+                title.setAttribute('data-i18n', key);
+            }
+            if (!m) return;
+            m.style.zIndex = '150';
+            showModal(m);
+            setTimeout(function () {
+                var el = document.getElementById('pinSetupNew');
+                if (el) { try { el.focus(); } catch (e) {} }
+            }, 150);
+        }
+
+        function savePinSetup() {
+            var st = pinSetupState;
+            if (!st || !st.user || !st.dek) return;
+            var err = document.getElementById('pinSetupError');
+            var pin = (document.getElementById('pinSetupNew') || {}).value || '';
+            var pin2 = (document.getElementById('pinSetupNew2') || {}).value || '';
+            var prob = pinProblem(pin);
+            if (prob) { if (err) err.textContent = prob; return; }
+            if (pin !== pin2) { if (err) err.textContent = t('pinSetupMismatch'); return; }
+            var u = st.user;
+            var dek = st.dek;
+            var btn = document.getElementById('pinSetupSaveBtn');
+            withBusy(btn, t('saving'), wrapDEKWithPassword(pin, dek).then(function (sec) {
+                u.pin = sec.pw;
+                u.dekPin = sec.dek;
+                if (st.mode === 'new') {
+                    // A Google account is identity + PIN; there is no password to keep.
+                    u.pw = null;
+                    u.dek = null;
+                }
+                sessionDEK = dek;
+                persistUser(u);
+                return syncAccount(u);
+            })).then(function () {
+                return ensureEscrow(u, st.mode === 'reset');
+            }).then(function () {
+                var m = document.getElementById('pinSetupModal');
+                if (m) hideModal(m);
+                pinSetupState = { user: null, dek: null, mode: 'new' };
+                googlePendingReset = null;
+                return enterApp(u);
+            }).then(function () {
+                showToast(t('pinSaved'), 'success');
+            }).catch(function (e) {
+                console.warn('PIN save failed', e);
+                if (err) err.textContent = t('pinSaveFailed');
+            });
+        }
+
+        function setupGoogleAuthEvents() {
+            var gb = document.getElementById('googleNativeBtn');
+            if (gb) gb.addEventListener('click', function () {
+                if (!googleConfigured()) return;
+                withBusy(gb, t('googleSigningIn'), Promise.resolve(startGoogleSignIn())).then(function (r) {
+                    if (r && !r.ok) googleShowError(r.error);
+                }).catch(function (e) {
+                    console.warn('Google button failed', e);
+                    googleShowError(t('googleFailed'));
+                });
+            });
+            var save = document.getElementById('pinSetupSaveBtn');
+            if (save) save.addEventListener('click', savePinSetup);
+            ['pinSetupNew', 'pinSetupNew2'].forEach(function (id) {
+                var el = document.getElementById(id);
+                if (el) el.addEventListener('input', function () {
+                    var err = document.getElementById('pinSetupError');
+                    if (err) err.textContent = '';
+                });
+            });
+        }
+
         // ============================================
         // I18N - Multi-language Support
         // ============================================
@@ -5029,9 +5636,6 @@
                 phoneNumber: 'Phone Number',
                 phoneUpdated: 'Last updated',
                 noPhone: 'No phone number added yet.',
-                backupReminderTitle: 'Back Up Your Patient Data',
-                backupReminderText: 'It\'s been a while since your last backup. Export a copy now so you never lose your patient records — this file also lets you or anyone else reopen everything later, even after uninstalling the app.',
-                remindLater: 'Remind Me Later',
                 selectDiagnosis: 'Select a diagnosis',
                 intervention: 'Intervention / Treatment',
                 cancel: 'Cancel',
@@ -5083,7 +5687,7 @@
                 passwordMismatch: 'Passwords do not match.',
                 pinMismatch: 'PINs do not match.',
                 passwordTooShort: 'Password must be at least 8 characters.',
-                pwMatchesUser: 'Password must not match your username.',
+                pwMatchesUser: 'Password must not match your e-mail.',
                 pwTooCommon: 'That password is too common — choose a unique one.',
                 pwNeedsLetterNumber: 'Use at least one letter and one number.',
                 pinTooShort: 'PIN must be at least {n} characters.',
@@ -5136,7 +5740,6 @@
                 noPatientsFound: 'No patients found',
                 downloaded: 'downloaded',
                 failedToProcess: 'Failed to process file',
-                welcomeBack: 'Welcome back, ',
                 accountNotFound: 'Account not found.',
                 usernameMin: 'Username must be at least 3 characters.',
                 usernameInvalid: 'Username: only letters, numbers, underscores.',
@@ -5168,6 +5771,28 @@
                 lockUnlock: 'Unlock',
                 lockForgot: 'Forgot password?',
                 lockSignOut: 'Sign out',
+                lockPinForgot: 'Forgot PIN?',
+                lockUsePassword: 'Use password instead',
+                lockUsePin: 'Use PIN instead',
+                lockPinPh: 'Enter your PIN or password',
+                lockNotePin: 'Enter your PIN, or your password.',
+                lockNotePw: 'Enter your password, or your PIN.',
+                googleOr: 'or use your account',
+                googleContinue: 'Continue with Google',
+                googleSigningIn: 'Signing in with Google…',
+                googleFailed: 'Google sign-in did not complete. Check your connection and try again.',
+                googleAccountExists: 'This e-mail already has a PClinic account. Sign in with your password once, then use Google.',
+                googleResetHint: 'Forgotten PIN? Sign in with Google to set a new one — your records stay intact.',
+                escrowMissing: 'Your saved key could not be found, so the PIN cannot be reset. Sign in with your password instead.',
+                pinSetupTitle: 'Choose a 4-digit PIN',
+                pinResetTitle: 'Choose a new PIN',
+                pinSetupText: 'You type this PIN every time you open PClinic. It unlocks your records on this and any other device.',
+                pinSetupPh: '4-digit PIN',
+                pinSetupPh2: 'Confirm PIN',
+                pinSetupSave: 'Save PIN',
+                pinSetupMismatch: 'The two PINs do not match.',
+                pinSaveFailed: 'Could not save the PIN. Try again.',
+                pinSaved: 'PIN saved.',
                 lockedManual: 'Locked manually.',
                 lockedInactive: 'Locked after inactivity.',
                 lockedBackground: 'Locked while the app was in the background.',
@@ -5253,6 +5878,7 @@
                 // ---- runtime messages that used to be hardcoded English ----
                 storageFull: 'Storage full — export a backup and free space. New data may not persist.',
                 emailAlreadyRegistered: 'This e-mail already has a PClinic account. Tap "Sign in" and use the same e-mail and password. Creating it again would overwrite your cloud records.',
+                signInEmailRequired: 'Enter the e-mail address you signed up with.',
                 accountConflict: 'This device holds a different account for this e-mail. Your cloud records were left untouched. Clear this site\u2019s data in the browser, then sign in again.',
                 saveFailedNotice: 'This change could not be saved on this device. Please sign in again and retry.',
                 recordsUnreadable: 'Saved records on this device could not be read. Saving is paused so nothing is overwritten. Sign out and sign in again, or restore a backup.',
@@ -5326,21 +5952,21 @@
                 profileProofPh: 'Your password, to confirm this change',
                 profileNewPassPh: 'Enter new password (min 6 chars)',
                 reportSearchPh: 'Search by name or ID...',
-                backupEmailPh: 'Email for backup (optional)',
                 interventionPh: 'Enter intervention plan...',
                 symptomsPh: 'Describe symptoms, history...',
                 patientAgePh: 'Enter age',
                 patientNamePh: 'Enter patient name',
                 regPhonePh: 'Phone number (e.g. +250788000000)',
                 regPassPh: 'Create a password',
-                regUserPh: 'Choose a username',
+                regUserPh: 'E-mail',
                 otpCodePh: '6-digit code',
                 forgotPhonePh: 'Phone number on the account',
                 loginPassPh: 'Password or PIN',
-                usernamePh: 'Username',
-                usernameOrEmailPh: 'Username or e-mail',
-                helpShowAgain: 'Show this again next time? (Cancel = do not show again)',
-                quickStartHelp: 'Quick start:\n\n1) Tap + next to Patient Queue to add a patient\n2) Open a patient to add notes, diagnosis, photos\n3) Backup icon → Export or Email Backup (recommended weekly)\n4) After reinstall: Backup → Import the .json file or paste from email\n\nTip: Search works on name, ID, diagnosis, and notes.',
+                usernamePh: 'E-mail',
+                usernameOrEmailPh: 'E-mail',
+                emailPh: 'E-mail',
+                regEmailHint: 'This is your sign-in name. Reset codes go here.',
+                regPhoneHint: 'Used to recover your account if you lose access.',
                 emailCodeBody: 'Your PClinic Pro password reset code is:\n\n    {n}\n\nThis code expires in 10 minutes.\nIf you did not request it, you can ignore this message.',
                 emailCodeSubject: 'PClinic Pro — password reset code',
                 invalidBackupFile: 'Invalid backup file',
@@ -5389,6 +6015,30 @@
                 driveRestoreFailed: 'Drive restore failed',
                 signedOutOfDrive: 'Signed out of Drive',
                 freshInstallSnapshotFound: 'Fresh install detected — a Drive snapshot exists. Open Storage & Backup → Restore from Drive.',
+                driveStatusVault: 'Vault',
+                driveStatusVaultActive: 'active — hidden folder on this device',
+                driveStatusVaultInactive: 'inactive (browser preview)',
+                driveStatusRecords: 'Records',
+                driveStatusMirror: 'Mirror',
+                driveStatusFolderGranted: 'folder granted · last {when}',
+                driveStatusNotGranted: 'not granted yet',
+                driveStatusDrive: 'Drive',
+                driveStatusSignedIn: 'signed in · last sync {when}',
+                driveStatusNotYet: 'not yet',
+                driveStatusLastFailed: 'last attempt failed: {error}',
+                driveStatusSignedOut: 'signed out',
+                driveConnected: 'Drive connected — media and vault sync in the background',
+                driveSignInCancelled: 'Sign-in cancelled',
+                driveSnapshotUploaded: 'Vault snapshot saved to your Drive',
+                driveNotSignedIn: 'Not signed in to Drive',
+                forgotServerTitle: 'Reset by e-mail',
+                forgotServerHint: 'No copy of this account is on this device. We can send a password-reset link to {email}. Open it, choose a new password, then sign in here — your records come back from the cloud.',
+                sendResetLink: 'Send reset link',
+                resetLinkSent: 'If an account exists for that address, the reset link is on its way. After setting a new password, sign in here.',
+                resetLinkFailed: 'Could not send the reset link. Check your connection and try again.',
+                videoTooLarge: 'That video is {n} MB — too large. Keep videos under {max} MB.',
+                videoNeedsApp: 'Videos need the Android app (they are saved to your Google Drive). You can still add photos here.',
+                backupVeryLarge: 'Backup saved, but it is about {n} MB — sharing it may take a while.',
 
             },
             fr: {
@@ -5434,9 +6084,6 @@
                 phoneNumber: 'Numéro de Téléphone',
                 phoneUpdated: 'Dernière mise à jour',
                 noPhone: 'Aucun numéro de téléphone ajouté.',
-                backupReminderTitle: 'Sauvegardez vos données patients',
-                backupReminderText: 'Votre dernière sauvegarde date d\'un moment. Exportez une copie maintenant pour ne jamais perdre vos dossiers patients — ce fichier vous permet aussi, à vous ou à quelqu\'un d\'autre, de tout rouvrir plus tard, même après avoir désinstallé l\'application.',
-                remindLater: 'Me le rappeler plus tard',
                 selectDiagnosis: 'Choisir un diagnostic',
                 intervention: 'Intervention / Traitement',
                 cancel: 'Annuler',
@@ -5488,7 +6135,7 @@
                 passwordMismatch: 'Les mots de passe ne correspondent pas.',
                 pinMismatch: 'Les codes PIN ne correspondent pas.',
                 passwordTooShort: 'Le mot de passe doit avoir au moins 8 caractères.',
-                pwMatchesUser: 'Le mot de passe ne doit pas correspondre à votre nom d\'utilisateur.',
+                pwMatchesUser: 'Le mot de passe ne doit pas correspondre à votre e-mail.',
                 pwTooCommon: 'Ce mot de passe est trop courant — choisissez-en un autre.',
                 pwNeedsLetterNumber: 'Utilisez au moins une lettre et un chiffre.',
                 pinTooShort: 'Le code PIN doit avoir au moins {n} caractères.',
@@ -5541,7 +6188,6 @@
                 noPatientsFound: 'Aucun patient trouvé',
                 downloaded: 'téléchargé',
                 failedToProcess: 'Échec du traitement du fichier',
-                welcomeBack: 'Bon retour, ',
                 accountNotFound: 'Compte non trouvé.',
                 usernameMin: 'Le nom d\'utilisateur doit avoir au moins 3 caractères.',
                 usernameInvalid: 'Nom d\'utilisateur: seulement lettres, chiffres, underscores.',
@@ -5573,6 +6219,28 @@
                 lockUnlock: 'Déverrouiller',
                 lockForgot: 'Mot de passe oublié ?',
                 lockSignOut: 'Se déconnecter',
+                lockPinForgot: 'Code PIN oublié ?',
+                lockUsePassword: 'Utiliser le mot de passe',
+                lockUsePin: 'Utiliser le code PIN',
+                lockPinPh: 'Saisissez votre code PIN ou mot de passe',
+                lockNotePin: 'Saisissez votre code PIN, ou votre mot de passe.',
+                lockNotePw: 'Saisissez votre mot de passe, ou votre code PIN.',
+                googleOr: 'ou utilisez votre compte',
+                googleContinue: 'Continuer avec Google',
+                googleSigningIn: 'Connexion avec Google…',
+                googleFailed: 'La connexion Google n’a pas abouti. Vérifiez votre connexion et réessayez.',
+                googleAccountExists: 'Cette adresse e-mail possède déjà un compte PClinic. Connectez-vous une fois avec votre mot de passe, puis utilisez Google.',
+                googleResetHint: 'Code PIN oublié ? Connectez-vous avec Google pour en définir un nouveau — vos dossiers restent intacts.',
+                escrowMissing: 'Votre clé enregistrée est introuvable, le code PIN ne peut donc pas être réinitialisé. Connectez-vous avec votre mot de passe.',
+                pinSetupTitle: 'Choisissez un code PIN à 4 chiffres',
+                pinResetTitle: 'Choisissez un nouveau code PIN',
+                pinSetupText: 'Vous saisissez ce code PIN à chaque ouverture de PClinic. Il déverrouille vos dossiers sur cet appareil et sur tout autre.',
+                pinSetupPh: 'Code PIN à 4 chiffres',
+                pinSetupPh2: 'Confirmez le code PIN',
+                pinSetupSave: 'Enregistrer le code PIN',
+                pinSetupMismatch: 'Les deux codes PIN ne correspondent pas.',
+                pinSaveFailed: 'Impossible d’enregistrer le code PIN. Réessayez.',
+                pinSaved: 'Code PIN enregistré.',
                 lockedManual: 'Verrouillé manuellement.',
                 lockedInactive: 'Verrouillé après inactivité.',
                 lockedBackground: 'Verrouillé pendant que l’application était en arrière-plan.',
@@ -5658,6 +6326,7 @@
                 // ---- runtime messages that used to be hardcoded English ----
                 storageFull: 'Stockage plein — exportez une sauvegarde et libérez de l’espace. Les nouvelles données risquent de ne pas être conservées.',
                 emailAlreadyRegistered: 'Cet e-mail a déjà un compte PClinic. Touchez « Se connecter » avec le même e-mail et le même mot de passe. Le recréer écraserait vos données dans le cloud.',
+                signInEmailRequired: 'Saisissez l’adresse e-mail utilisée lors de l’inscription.',
                 accountConflict: 'Cet appareil contient un autre compte pour cet e-mail. Vos données cloud n’ont pas été modifiées. Effacez les données de ce site dans le navigateur, puis reconnectez-vous.',
                 saveFailedNotice: 'Cette modification n’a pas pu être enregistrée sur cet appareil. Reconnectez-vous et réessayez.',
                 recordsUnreadable: 'Les dossiers enregistrés sur cet appareil sont illisibles. L’enregistrement est suspendu pour ne rien écraser. Déconnectez-vous puis reconnectez-vous, ou restaurez une sauvegarde.',
@@ -5731,21 +6400,21 @@
                 profileProofPh: 'Votre mot de passe, pour confirmer ce changement',
                 profileNewPassPh: 'Saisir le nouveau mot de passe (min 6)',
                 reportSearchPh: 'Rechercher par nom ou ID...',
-                backupEmailPh: 'E-mail pour la sauvegarde (facultatif)',
                 interventionPh: 'Saisir le plan d\'intervention...',
                 symptomsPh: 'Décrivez les symptômes, les antécédents...',
                 patientAgePh: 'Saisir l\'âge',
                 patientNamePh: 'Saisir le nom du patient',
                 regPhonePh: 'Numéro de téléphone (ex. +250788000000)',
                 regPassPh: 'Créez un mot de passe',
-                regUserPh: 'Choisissez un nom d\'utilisateur',
+                regUserPh: 'E-mail',
                 otpCodePh: 'Code à 6 chiffres',
                 forgotPhonePh: 'Numéro de téléphone du compte',
                 loginPassPh: 'Mot de passe ou code PIN',
-                usernamePh: 'Nom d\'utilisateur',
-                usernameOrEmailPh: 'Nom d\'utilisateur ou e-mail',
-                helpShowAgain: 'Afficher ceci la prochaine fois ? (Annuler = ne plus afficher)',
-                quickStartHelp: 'Démarrage rapide :\n\n1) Touchez + à côté de la file des patients pour ajouter un patient\n2) Ouvrez un patient pour ajouter notes, diagnostic, photos\n3) Icône de sauvegarde → Exporter ou Envoyer par e-mail (recommandé chaque semaine)\n4) Après une réinstallation : Sauvegarde → Importer le fichier .json ou coller depuis l’e-mail\n\nAstuce : la recherche fonctionne sur le nom, l’ID, le diagnostic et les notes.',
+                usernamePh: 'E-mail',
+                usernameOrEmailPh: 'E-mail',
+                emailPh: 'E-mail',
+                regEmailHint: 'C’est votre identifiant. Les codes de réinitialisation arrivent ici.',
+                regPhoneHint: 'Sert à récupérer votre compte en cas de perte d’accès.',
                 emailCodeBody: 'Votre code de réinitialisation du mot de passe PClinic Pro est :\n\n    {n}\n\nCe code expire dans 10 minutes.\nSi vous ne l’avez pas demandé, ignorez ce message.',
                 emailCodeSubject: 'PClinic Pro — code de réinitialisation du mot de passe',
                 invalidBackupFile: 'Fichier de sauvegarde invalide',
@@ -5794,6 +6463,30 @@
                 driveRestoreFailed: 'Restauration Drive échouée',
                 signedOutOfDrive: 'Déconnecté de Drive',
                 freshInstallSnapshotFound: 'Installation fraîche détectée — un instantané Drive existe. Ouvrez Stockage et sauvegarde → Restaurer depuis Drive.',
+                driveStatusVault: 'Coffre',
+                driveStatusVaultActive: 'actif — dossier caché sur cet appareil',
+                driveStatusVaultInactive: 'inactif (aperçu navigateur)',
+                driveStatusRecords: 'Dossiers',
+                driveStatusMirror: 'Miroir',
+                driveStatusFolderGranted: 'dossier autorisé · dernier {when}',
+                driveStatusNotGranted: 'pas encore autorisé',
+                driveStatusDrive: 'Drive',
+                driveStatusSignedIn: 'connecté · dernière synchro {when}',
+                driveStatusNotYet: 'pas encore',
+                driveStatusLastFailed: 'dernière tentative échouée : {error}',
+                driveStatusSignedOut: 'déconnecté',
+                driveConnected: 'Drive connecté — les médias et le coffre se synchronisent en arrière-plan',
+                driveSignInCancelled: 'Connexion annulée',
+                driveSnapshotUploaded: 'Instantané du coffre enregistré dans votre Drive',
+                driveNotSignedIn: 'Non connecté à Drive',
+                forgotServerTitle: 'Réinitialiser par e-mail',
+                forgotServerHint: 'Aucune copie de ce compte n’est sur cet appareil. Nous pouvons envoyer un lien de réinitialisation à {email}. Ouvrez-le, choisissez un nouveau mot de passe, puis connectez-vous ici — vos dossiers reviendront du cloud.',
+                sendResetLink: 'Envoyer le lien',
+                resetLinkSent: 'Si un compte existe pour cette adresse, le lien est en route. Après avoir défini un nouveau mot de passe, connectez-vous ici.',
+                resetLinkFailed: 'Impossible d’envoyer le lien. Vérifiez votre connexion et réessayez.',
+                videoTooLarge: 'Cette vidéo fait {n} Mo — trop volumineuse. Gardez les vidéos sous {max} Mo.',
+                videoNeedsApp: 'Les vidéos nécessitent l’application Android (elles sont enregistrées dans votre Google Drive). Les photos restent possibles ici.',
+                backupVeryLarge: 'Sauvegarde enregistrée, mais elle fait environ {n} Mo — le partage peut prendre du temps.',
 
             },
             rw: {
@@ -5839,9 +6532,6 @@
                 phoneNumber: 'Numero ya Telefoni',
                 phoneUpdated: 'Byahinduwe bwa nyuma',
                 noPhone: 'Nta numero ya telefoni yashyizweho.',
-                backupReminderTitle: 'Bika Amakuru y\'Abarwayi Bawe',
-                backupReminderText: 'Igihe kirageze cyo kubika amakuru yawe. Manura kopi ubu kugira ngo utazatakaza amadosiye y\'abarwayi — iyi dosiye nayo ituma wowe cyangwa undi muntu ashobora kongera kuyifungura nyuma, n\'ubwo waba wasibye porogaramu.',
-                remindLater: 'Nzabikora nyuma',
                 selectDiagnosis: 'Hitamo indwara',
                 intervention: 'Uburyo Bwo Kuvura',
                 cancel: 'Reka',
@@ -5893,7 +6583,7 @@
                 passwordMismatch: 'Amajambo ntabwo ahuje.',
                 pinMismatch: 'PIN ntihuje.',
                 passwordTooShort: 'Ijambo ry\'ibanga rigomba kugira inyuguti 8.',
-                pwMatchesUser: 'Ijambo ry\'ibanga ntirihure n\'izina ry\'ukoresha.',
+                pwMatchesUser: 'Ijambo ry\'ibanga ntirihure na e-mail yawe.',
                 pwTooCommon: 'Iri jambo ry\'ibanga rikunze gukoreshwa — hitamo irindi.',
                 pwNeedsLetterNumber: 'Koresha nibura inyuguti imwe n\'umubare umwe.',
                 pinTooShort: 'PIN igomba kugira ibimenyetso nibura {n}.',
@@ -5946,7 +6636,6 @@
                 noPatientsFound: 'Nta barwayi babonetse',
                 downloaded: 'yamanuwe',
                 failedToProcess: 'Dosiye ntishoboye gutunganywa',
-                welcomeBack: 'Murakaza neza, ',
                 accountNotFound: 'Konti ntibonetse.',
                 usernameMin: 'Izina rigomba kugira inyuguti 3.',
                 usernameInvalid: 'Izina: inyuguti, imibare, _ gusa.',
@@ -5979,6 +6668,28 @@
                 lockUnlock: 'Fungura',
                 lockForgot: 'Wibagiwe ijambo ry\'ibanga?',
                 lockSignOut: 'Sohoka',
+                lockPinForgot: 'Wibagiwe PIN?',
+                lockUsePassword: 'Koresha ijambo ry\'ibanga',
+                lockUsePin: 'Koresha PIN',
+                lockPinPh: 'Andika PIN cyangwa ijambo ry\'ibanga',
+                lockNotePin: 'Andika PIN yawe, cyangwa ijambo ry\'ibanga.',
+                lockNotePw: 'Andika ijambo ry\'ibanga, cyangwa PIN yawe.',
+                googleOr: 'cyangwa ukoreshe konti yawe',
+                googleContinue: 'Komeza na Google',
+                googleSigningIn: 'Kwinjira na Google…',
+                googleFailed: 'Kwinjira na Google ntibyakunze. Reba interineti yawe hanyuma ugerageze.',
+                googleAccountExists: 'Iyi imeyili isanzwe ifite konti ya PClinic. Injira rimwe n\'ijambo ry\'ibanga, hanyuma ukoreshe Google.',
+                googleResetHint: 'Wibagiwe PIN? Injira na Google ushyireho indi nshya — inyandiko zawe ntizizimira.',
+                escrowMissing: 'Urufunguzo rwawe rwabitswe ntirwabonetse, bityo PIN ntishobora guhindurwa. Injira n\'ijambo ry\'ibanga.',
+                pinSetupTitle: 'Hitamo PIN y\'imibare 4',
+                pinResetTitle: 'Hitamo PIN nshya',
+                pinSetupText: 'Ushyiramo iyi PIN buri gihe ufungura PClinic. Ifungura inyandiko zawe kuri iyi telefoni n\'izindi.',
+                pinSetupPh: 'PIN y\'imibare 4',
+                pinSetupPh2: 'Emeza PIN',
+                pinSetupSave: 'Bika PIN',
+                pinSetupMismatch: 'PIN ebyiri ntizihura.',
+                pinSaveFailed: 'Ntibishobotse kubika PIN. Ongera ugerageze.',
+                pinSaved: 'PIN yabitswe.',
                 lockedManual: 'Yafunzwe n\'umuntu.',
                 lockedInactive: 'Yafunzwe nyuma yo kutakoreshwa.',
                 lockedBackground: 'Yafunzwe igihe porogaramu yari inyuma.',
@@ -6064,6 +6775,7 @@
                 // ---- runtime messages that used to be hardcoded English ----
                 storageFull: 'Ububiko bwuzuye — korana dosiye y’umukororombyra wandikwe maze urekure umwanya. Amakuru mashya ashobora kutabikwa.',
                 emailAlreadyRegistered: 'Iyi meyili isanzwe ifite konti ya PClinic. Kanda « Kwinjira » ukoreshe meyili n’ijambo ry’ibanga bimwe. Kuyihanga bundi bushya byasiba amakuru yawe yo kuri interineti.',
+                signInEmailRequired: 'Andika imeyili wakoresheje mu kwiyandikisha.',
                 accountConflict: 'Iki gikoresho gifite konti itandukanye n’iyi meyili. Amakuru yawe yo kuri interineti ntiyakozweho. Siba amakuru y’uru rubuga muri browser, hanyuma wongere winjire.',
                 saveFailedNotice: 'Iri hinduka ntiryabashije kubikwa kuri iki gikoresho. Ongera winjire, ugerageze.',
                 recordsUnreadable: 'Amadosiye yabitswe kuri iki gikoresho ntiyashoboye gusomwa. Kubika byahagaritswe kugira ngo hatagira icyandikwaho. Sohoka maze wongere winjire, cyangwa usubizemo kopi y’ububiko.',
@@ -6137,21 +6849,21 @@
                 profileProofPh: 'Ijambo ry\'ibanga ryawe, kugira ngo wemeze iri hinduka',
                 profileNewPassPh: 'Andika ijambo ry\'ibanga rishya (nibura 6)',
                 reportSearchPh: 'Shakisha ku izina cyangwa ID...',
-                backupEmailPh: 'Imeyili y\'umukororombyra (si itegeko)',
                 interventionPh: 'Andika umugambi w\'itabazwa...',
                 symptomsPh: 'Sobanura ibimenyetso, amateka...',
                 patientAgePh: 'Andika imyaka',
                 patientNamePh: 'Andika izina ry\'umurwayi',
                 regPhonePh: 'Nimero ya telefone (urugero +250788000000)',
                 regPassPh: 'Kora ijambo ry\'ibanga',
-                regUserPh: 'Hitamo izina ry\'ukoresha',
+                regUserPh: 'E-mail',
                 otpCodePh: 'Kode y\'imibare 6',
                 forgotPhonePh: 'Nimero ya telefone iri kuri konti',
                 loginPassPh: 'Ijambo ry\'ibanga cyangwa PIN',
-                usernamePh: 'Izina ry\'ukoresha',
-                usernameOrEmailPh: 'Izina ry\'ukoresha cyangwa e-mail',
-                helpShowAgain: 'Erekana ibi ubutaha? (Kuneka = ntibizongera kerekanwa)',
-                quickStartHelp: 'Intangiriro yihuse:\n\n1) Kanda + hafi y\'urutonde rw\'abarwayi kugira ngo wongere umurwayi\n2) Fungura umurwayi kugira ngo wongere inyandiko, ibibazo n\'amafoto\n3) Ikimenyetso cy\'umukororombyra → Kohereza cyangwa Ohereza kuri imeyili (buri cyumweru)\n4) Nyuma yo gushyiraho kongera: Umukororombyra → Intranya dosiye ya .json cyangwa ukopeshe uvanye kuri imeyili\n\nInama: Gushakisha bikora ku izina, ID, ibibazo n\'inyandiko.',
+                usernamePh: 'E-mail',
+                usernameOrEmailPh: 'E-mail',
+                emailPh: 'E-mail',
+                regEmailHint: 'Iyi niyo meyili yo kwinjira. Kode zo gusubiza zijyayo.',
+                regPhoneHint: 'Ikoreshwa mu kugarura konti yawe nurambiwe kwinjira.',
                 emailCodeBody: 'Kode yawo yo gusubiza ijambo ry\'ibanga rya PClinic Pro ni:\n\n    {n}\n\nIyi kode irangiza mu minota 10.\nNibuta wayisabye, ushobora kuyireka.',
                 emailCodeSubject: 'PClinic Pro — kode yo gusubiza ijambo ry\'ibanga',
                 invalidBackupFile: 'Dosiye y’umukororombyra si yo',
@@ -6200,6 +6912,30 @@
                 driveRestoreFailed: 'Gusubiza muri Drive byagenze nabi',
                 signedOutOfDrive: 'Washetse muri Drive',
                 freshInstallSnapshotFound: 'Injiza nshya ya porogaramu yabonetse — ishusho ya Drive iriho. Fungura Ububiko n’Umukororombyra → Subiza uvanye muri Drive.',
+                driveStatusVault: 'Ububiko',
+                driveStatusVaultActive: 'burakora — dosiye ihishe kuri iki gikoresho',
+                driveStatusVaultInactive: 'ntibukora (igerageza rya mushakisha)',
+                driveStatusRecords: 'Amadosiye',
+                driveStatusMirror: 'Icyuho',
+                driveStatusFolderGranted: 'dosiye yemewe · iheruka {when}',
+                driveStatusNotGranted: 'ntiyemewe',
+                driveStatusDrive: 'Drive',
+                driveStatusSignedIn: 'winjiye · guhuza kwa nyuma {when}',
+                driveStatusNotYet: 'ntibirabaho',
+                driveStatusLastFailed: 'igerageza rya nyuma ryananiranye: {error}',
+                driveStatusSignedOut: 'wasohotse',
+                driveConnected: 'Drive yahujwe — amafoto n’ububiko bihuzwa mu buryo buhishwe',
+                driveSignInCancelled: 'Kwinjira byahagaritswe',
+                driveSnapshotUploaded: 'Ishusho y’ububiko yabitswe muri Drive yawe',
+                driveNotSignedIn: 'Ntabwo winjiye muri Drive',
+                forgotServerTitle: 'Ongera usubize ijambo ry’ibanga ukoresheje imeyili',
+                forgotServerHint: 'Nta kopi y’iyi konti iri kuri iki gikoresho. Dushobora kohereza umurongo wo guhindura ijambo ry’ibanga kuri {email}. Wufungure, uhitemo ijambo ry’ibanga rishya, hanyuma winjire hano — amadosiye yawe azasubira ava mu bicumbi.',
+                sendResetLink: 'Ohereza umurongo',
+                resetLinkSent: 'Niba konti ihari kuri iyo imeyili, umurongo uraje. Nyuma yo gushyiraho ijambo ry’ibanga rishya, injira hano.',
+                resetLinkFailed: 'Ntibyakunze kohereza umurongo. Reba interineti hanyuma ugerageze.',
+                videoTooLarge: 'Iyi videwo ni {n} MB — ni nini cyane. Koresha videwo iri munsi ya {max} MB.',
+                videoNeedsApp: 'Videwo zisaba porogaramu ya Android (zibikwa muri Google Drive yawe). Amafoto aracyakorwa hano.',
+                backupVeryLarge: 'Umukororombyra wabitswe, ariko ni hafi {n} MB — gusangiza bishobora kumara igihe.',
 
             }
         };
@@ -6363,7 +7099,7 @@
         var loginPanel = $('#loginPanel'), registerPanel = $('#registerPanel');
         var loginForm = $('#loginForm'), registerForm = $('#registerForm');
         var loginUser = $('#loginUser'), loginPass = $('#loginPass'), loginError = $('#loginError');
-        var regUser = $('#regUser'), regPass = $('#regPass'), regPassConfirm = $('#regPassConfirm'), regError = $('#regError');
+        var regEmail = $('#regEmail'), regPass = $('#regPass'), regPassConfirm = $('#regPassConfirm'), regError = $('#regError');
         var showRegister = $('#showRegister'), showLogin = $('#showLogin');
         var toggleLoginPass = $('#toggleLoginPass'), toggleRegPass = $('#toggleRegPass');
         var logoutBtn = $('#logoutBtn');
@@ -6562,20 +7298,23 @@
             });
         }
 
+        // Resolves true only when the record list actually reached storage.
+        // Callers must not claim success (or write an activity entry) before that.
         function savePatients() {
             var pk = getPatientKey();
             if (window.__decryptFailed && window.__decryptFailed[pk]) {
                 showToast(t('recordsUnreadable'), 'error');
-                return false;
+                return Promise.resolve(false);
             }
             if (window.__vaultMode === 'fs') {
-                Vault.schedule(patients);          // debounced vault write + mirror + Drive + cloud
-            } else {
-                secureSet(pk, patients).then(function (ok) {   // web / pre-migration fallback
+                return Vault.save(patients).then(function (ok) {
                     if (!ok) showToast(t('saveFailedNotice'), 'error');
+                    return !!ok;
                 });
             }
-            return true;
+            return secureSet(pk, patients).then(function (ok) {   // web / pre-migration fallback
+                return !!ok;                                      // secureSet reports the reason
+            });
         }
 
         function addPatient(data) {
@@ -6595,16 +7334,19 @@
                 updatedAt: new Date().toISOString()
             };
             patients.unshift(p);
-            savePatients();
-            if (p.hospital) recordHospitalUse(p.hospital);
-            if (p.diagnosis) recordDiagnosisUse(p.diagnosis);
-            logActivity('add', 'Added patient ' + p.name + ' (' + p.id + ')');
-            return p;
+            return savePatients().then(function (ok) {
+                if (ok) {
+                    if (p.hospital) recordHospitalUse(p.hospital);
+                    if (p.diagnosis) recordDiagnosisUse(p.diagnosis);
+                    logActivity('add', 'Added patient ' + p.name + ' (' + p.id + ')');
+                }
+                return ok;
+            });
         }
 
         function updatePatient(id, updates) {
             var i = patients.findIndex(function(p) { return p.id === id; });
-            if (i === -1) return null;
+            if (i === -1) return Promise.resolve(false);
             var oldName = patients[i].name;
             var prevHospital = patients[i].hospital || '';
             var prevDiagnosis = patients[i].diagnosis || '';
@@ -6612,33 +7354,49 @@
                 updates = Object.assign({}, updates, { phoneUpdatedAt: (updates.phone || '').trim() ? new Date().toISOString() : '' });
             }
             patients[i] = Object.assign({}, patients[i], updates, { updatedAt: new Date().toISOString() });
-            savePatients();
-            // Remember new/custom values; boost frequency only when value actually changes
-            if (updates.hospital !== undefined && updates.hospital && updates.hospital !== prevHospital) {
-                recordHospitalUse(updates.hospital);
-            } else if (updates.hospital !== undefined && updates.hospital && optionCatalog.hospitals[updates.hospital] === undefined) {
-                recordHospitalUse(updates.hospital);
-            }
-            if (updates.diagnosis !== undefined && updates.diagnosis && updates.diagnosis !== prevDiagnosis) {
-                recordDiagnosisUse(updates.diagnosis);
-            } else if (updates.diagnosis !== undefined && updates.diagnosis && optionCatalog.diagnoses[updates.diagnosis] === undefined) {
-                recordDiagnosisUse(updates.diagnosis);
-            }
-            logActivity('edit', 'Updated patient ' + patients[i].name + ' (' + patients[i].id + ')');
-            return patients[i];
+            var edited = patients[i];
+            return savePatients().then(function (ok) {
+                if (!ok) return false;
+                // Remember new/custom values; boost frequency only when value actually changes
+                if (updates.hospital !== undefined && updates.hospital && updates.hospital !== prevHospital) {
+                    recordHospitalUse(updates.hospital);
+                } else if (updates.hospital !== undefined && updates.hospital && optionCatalog.hospitals[updates.hospital] === undefined) {
+                    recordHospitalUse(updates.hospital);
+                }
+                if (updates.diagnosis !== undefined && updates.diagnosis && updates.diagnosis !== prevDiagnosis) {
+                    recordDiagnosisUse(updates.diagnosis);
+                } else if (updates.diagnosis !== undefined && updates.diagnosis && optionCatalog.diagnoses[updates.diagnosis] === undefined) {
+                    recordDiagnosisUse(updates.diagnosis);
+                }
+                logActivity('edit', 'Updated patient ' + edited.name + ' (' + edited.id + ')');
+                return true;
+            });
         }
 
         function deletePatient(id) {
             var p = getPatient(id);
             var name = p ? p.name : t('unknown');
-            var refs = collectMediaRefs(p ? p.media : []);
+            var mediaList = (p && p.media) ? p.media.slice() : [];
+            var refs = collectMediaRefs(mediaList);
             patients = patients.filter(function(p) { return p.id !== id; });
-            tombstones[String(id)] = new Date().toISOString();   // so the cloud merge does not bring it back
-            saveTombstones();
-            savePatients();
-            if (refs.length) MediaStore.removeMany(refs);
-            rebuildMediaIndex();
-            logActivity('delete', 'Deleted patient ' + name + ' (' + id + ')');
+            return savePatients().then(function (ok) {
+                if (!ok) {
+                    // The delete never reached storage: put the patient back so the
+                    // queue keeps matching what will exist after a reload.
+                    if (p) patients.unshift(p);
+                    return false;
+                }
+                tombstones[String(id)] = new Date().toISOString();   // so the cloud merge does not bring it back
+                saveTombstones();
+                if (refs.length) MediaStore.removeMany(refs);
+                // Remove the patient's photos/videos from the Drive folder too.
+                mediaList.forEach(function(m) {
+                    if (m && m.driveId) driveDeleteMedia(m.driveId);
+                });
+                rebuildMediaIndex();
+                logActivity('delete', 'Deleted patient ' + name + ' (' + id + ')');
+                return true;
+            });
         }
 
         function getPatient(id) {
@@ -6931,7 +7689,7 @@
                  backupModal, activityModal, profileModal].forEach(function(m) {
                     if (m) hideModal(m);
                 });
-                ['backupReminderModal', 'driveUploadModal', 'cameraModal',
+                ['driveUploadModal', 'cameraModal',
                  'mediaActionModal', 'vaultModal'].forEach(function(id) {
                     var el = document.getElementById(id);
                     if (el) hideModal(el);
@@ -6982,6 +7740,11 @@
                     setTimeout(showPrivacyNoticeIfDue, 1500);
                     return;
                 }
+                var ps = document.getElementById('pinSetupModal');
+                if (ps && ps.classList.contains('active')) {
+                    setTimeout(showPrivacyNoticeIfDue, 1500);
+                    return;
+                }
                 var pm = document.getElementById('privacyModal');
                 var meta = document.getElementById('privacyMeta');
                 if (meta) meta.textContent = t('notAcceptedYet');
@@ -6994,6 +7757,13 @@
             window.__decryptFailed = {};
             hideLockScreen();
             currentUser = user;
+            // The Firebase uid is the cloud sync path; remember it so Google
+            // sign-in can find this account on the next device.
+            if (user && !user.uid && apiEnabled() && apiToken() && apiUid()) {
+                user.uid = apiUid();
+                persistUser(user);
+                syncAccount(user);
+            }
             // First run for this account: make sure the privacy notice has been seen.
             // Deliberately on a delay so it never stacks on top of the recovery code.
             if (user && !user.privacyAcceptedAt) {
@@ -7011,6 +7781,8 @@
                 .then(loadCatalogFromStore)
                 .then(loadTombstones)
                 .then(function() {
+                    // Keep the escrowed key current (no-op offline / already written).
+                    if (user && user.uid) ensureEscrow(user);
                     rebuildMediaIndex();
                     loadCatalog(); // custom hospitals/diagnoses + frequency ranking
                     refreshAllOptionSelects();
@@ -7022,32 +7794,17 @@
                     if (profileUsername) profileUsername.textContent = user.username;
                     if (profileUserId) profileUserId.textContent = t('idLabel') + user.id;
                     if (profileCreated) profileCreated.textContent = t('createdLabel') + new Date(user.createdAt).toLocaleDateString();
-                    setTimeout(checkBackupReminder, 900);
                     loadDriveToken();
                     // Push any media that has no Drive copy yet (background).
                     if (typeof driveSyncMedia === 'function') {
                         driveSyncMedia().catch(function (e) { console.warn('drive media sync failed', e); });
                     }
-                    setTimeout(showFirstTimeHelp, 1200);
                     startCloudSyncLoop();
                     requestCloudSync(300);          // sign-in, unlock and app start all land here
                     lastActivityAt = Date.now();
                     refreshProfileSecurity();
                     return true;
                 });
-        }
-
-        function showFirstTimeHelp() {
-            if (!currentUser) return;
-            try {
-                if (localStorage.getItem('pclinic_help_seen_' + currentUser.id)) return;
-            } catch(e) {}
-            var msg = t('quickStartHelp');
-            if (confirm(msg + '\n\n' + t('helpShowAgain'))) {
-                /* keep showing */
-            } else {
-                try { localStorage.setItem('pclinic_help_seen_' + currentUser.id, '1'); } catch(e) {}
-            }
         }
 
         function logout() {
@@ -7496,7 +8253,7 @@
                         if (!url) return;
                         return generateVideoThumbnailFromSrc(url).then(function(thumb) {
                             if (!thumb) return;
-                            var store = (MediaStore.available() && sessionDEK)
+                            var store = mediaStoreUsable()
                                 ? MediaStore.putFromDataUrl(item.id + '.thumb.bin', thumb).then(function(ref) {
                                       item.thumbFile = ref; item.thumbnail = '';
                                   })
@@ -7615,24 +8372,27 @@
                 var newDiag = getDiagnosisValue(diagSelect, diagCustom);
                 var newHospital = getHospitalValue(hospitalSelect, hospitalCustom);
                 var newPhone = phoneInput ? phoneInput.value.trim() : (p.phone || '');
-                var updated = updatePatient(p.id, {
+                updatePatient(p.id, {
                     history: ta ? ta.value.trim() : '',
                     diagnosis: newDiag,
                     hospital: newHospital,
                     intervention: taInt ? taInt.value.trim() : '',
                     phone: newPhone
+                }).then(function (ok) {
+                    if (!ok) return;
+                    hasUnsavedChanges = false;
+                    if (dot) dot.classList.remove('visible');
+                    if (dotDiag) dotDiag.classList.remove('visible');
+                    if (dotInt) dotInt.classList.remove('visible');
+                    if (dotHospital) dotHospital.classList.remove('visible');
+                    if (dotPhone) dotPhone.classList.remove('visible');
+                    var phoneLabel = $('#phoneUpdatedLabel');
+                    var saved = getPatient(p.id);
+                    if (phoneLabel && saved) {
+                        phoneLabel.textContent = saved.phone ? (t('phoneUpdated') + ': ' + fmtDate(saved.phoneUpdatedAt)) : t('noPhone');
+                    }
+                    showToast(t('patientUpdated'), 'success');
                 });
-                hasUnsavedChanges = false;
-                if (dot) dot.classList.remove('visible');
-                if (dotDiag) dotDiag.classList.remove('visible');
-                if (dotInt) dotInt.classList.remove('visible');
-                if (dotHospital) dotHospital.classList.remove('visible');
-                if (dotPhone) dotPhone.classList.remove('visible');
-                var phoneLabel = $('#phoneUpdatedLabel');
-                if (phoneLabel && updated) {
-                    phoneLabel.textContent = updated.phone ? (t('phoneUpdated') + ': ' + fmtDate(updated.phoneUpdatedAt)) : t('noPhone');
-                }
-                showToast(t('patientUpdated'), 'success');
             });
 
             if (delBtn) delBtn.addEventListener('click', function() {
@@ -7649,6 +8409,9 @@
                     var media = (p.media || []).slice();
                     var removed = media.splice(idx, 1);
                     MediaStore.removeMany(collectMediaRefs(removed));
+                    removed.forEach(function(m) {
+                        if (m && m.driveId) driveDeleteMedia(m.driveId);
+                    });
                     updatePatient(p.id, { media: media });
                     rebuildMediaIndex();
                     renderDetail(p.id);
@@ -7972,11 +8735,12 @@
                             diagnosis: data.diagnosis || '',
                             intervention: data.intervention || '',
                             media: media
+                        }).then(function (ok) {
+                            rebuildMediaIndex();
+                            if (ok) showToast(t('patientUpdated'), 'success');
+                            hideModal(importModal);
+                            renderQueue();
                         });
-                        rebuildMediaIndex();
-                        showToast(t('patientUpdated'), 'success');
-                        hideModal(importModal);
-                        renderQueue();
                     });
                 } else {
                     applyMedia().then(function(media) {
@@ -7990,11 +8754,12 @@
                             diagnosis: data.diagnosis || '',
                             intervention: data.intervention || '',
                             media: media
+                        }).then(function (ok) {
+                            rebuildMediaIndex();
+                            if (ok) showToast(t('patientImported') + ' (only visible on your account)', 'success');
+                            hideModal(importModal);
+                            renderQueue();
                         });
-                        rebuildMediaIndex();
-                        showToast(t('patientImported') + ' (only visible on your account)', 'success');
-                        hideModal(importModal);
-                        renderQueue();
                     });
                 }
             } catch (e) {
@@ -8005,24 +8770,6 @@
         // ============================================
         // Backup / Restore
         // ============================================
-        function getBackupTrackKey() { return 'pclinic_last_backup_' + currentUser.id; }
-        function getBackupSnoozeKey() { return 'pclinic_backup_snooze_' + currentUser.id; }
-
-        function checkBackupReminder() {
-            if (!currentUser || !patients.length) return;
-            var now = Date.now();
-            var snoozeUntil = parseInt(localStorage.getItem(getBackupSnoozeKey()) || '0', 10);
-            if (now < snoozeUntil) return;
-            var lastBackup = localStorage.getItem(getBackupTrackKey());
-            var daysSince = lastBackup ? (now - new Date(lastBackup).getTime()) / 86400000 : Infinity;
-            if (daysSince >= 7) {
-                var reminderModal = $('#backupReminderModal');
-                var remEmail = document.getElementById('backupReminderEmail');
-                if (remEmail) remEmail.value = getSavedBackupEmail();
-                if (reminderModal) showModal(reminderModal);
-            }
-        }
-
         function buildFullBackup() {
             // activity log travels with the backup so it survives a reinstall
             // Media lives outside localStorage now, so it is read back in and
@@ -8122,8 +8869,6 @@
             try {
                 var bm = document.getElementById('backupModal');
                 if (bm) hideModal(bm);
-                var brm = document.getElementById('backupReminderModal');
-                if (brm) hideModal(brm);
             } catch (e) {}
             var modal = document.getElementById('driveUploadModal');
             if (modal) {
@@ -8156,13 +8901,10 @@
                     title: 'PClinic Pro Backup',
                     text: 'PClinic full backup (' + patients.length + ' patients) — save to Google Drive'
                 }).then(function() {
-                    try {
-                        localStorage.setItem(getBackupTrackKey(), new Date().toISOString());
-                        // Session-only "share sheet used" flag — no fake token stored.
-                        driveConnected = true;
-                        driveToken = null;
-                        updateDriveStatus();
-                    } catch (e) {}
+                    // Session-only "share sheet used" flag — no fake token stored.
+                    driveConnected = true;
+                    driveToken = null;
+                    updateDriveStatus();
                     showToast(t('pickDriveInShare'), 'success');
                     var modal = document.getElementById('driveUploadModal');
                     if (modal) hideModal(modal);
@@ -8188,16 +8930,18 @@
 
         function exportBackup(options) {
             options = options || {};
-            var offerDrive = options.offerDrive !== false;
+            var offerDrive = options.offerDrive === true;
             var btn = options.button || null;
             var password = options.password || '';
             var finish = function(pack) {
                 lastBackupFile = pack.file;
                 lastBackupFileName = pack.filename;
                 downloadBlobFile(pack.blob, pack.filename);
-                try { localStorage.setItem(getBackupTrackKey(), new Date().toISOString()); } catch (e) {}
                 showToast((pack.encrypted ? t('backupSavedProtected') : t('backupSavedPlain'))
                           .replace('{n}', String(patients.length)), 'success');
+                if (pack.blob && pack.blob.size > 150 * 1048576) {
+                    showToast(t('backupVeryLarge').replace('{n}', String(Math.round(pack.blob.size / 1048576))), 'info');
+                }
                 if (offerDrive) {
                     setTimeout(function() { showDriveUploadModal(pack.filename); }, 600);
                 }
@@ -8225,8 +8969,8 @@
         //  CONFIGURATION — SMS relay  (password-reset codes by text message)
         //  Twilio / Africa's Talking keys must NEVER live in this file: anyone with the
         //  APK can read it. Point this at a small hosted endpoint that holds the
-        //  credentials server-side (a Firebase Cloud Function on project pclinic-20d81
-        //  works) and have it POST the message. Expected contract:
+        //  credentials server-side (any HTTPS endpoint you control works) and have
+        //  it POST the message. Expected contract:
         //      POST <SMS_RELAY_URL>  {"to":"+2507…","code":"482913","app":"pclinic"}
         //      200 on accepted, non-2xx otherwise.
         //  Leave it as '' to disable SMS recovery — the e-mail code and the
@@ -8244,13 +8988,19 @@
         //  stays encrypted on-device with the password-derived key.
         //  Photos/videos sync separately to the user's Google Drive (visible
         //  "PClinic Media" folder) via the native Drive plugin.
-        //  The apiKey below is a public identifier (same project as the
-        //  PClinic web app), not a secret. Leave apiKey '' for local-only mode.
+        //  The apiKey below is a public identifier for this app's own project
+        //  (pclinic-android-app), separate from the PClinic web app, not a
+        //  secret. Leave apiKey '' for local-only mode.
         // ============================================================================
         var FIREBASE = {
-            apiKey: 'AIzaSyAcfSN-Z1FRnZC6bASy3b08abPDYJr-Ku0',
-            projectId: 'pclinic-20d81'
+            apiKey: 'AIzaSyCfic-_oJXOw-szDZEI_eFZGE-zaObCEUk',
+            projectId: 'pclinic-android-app'
         };
+
+        // Google sign-in: paste the OAuth *Web* client ID here
+        // (…apps.googleusercontent.com). While it is empty the Google button is
+        // hidden and the username/password form is the only way in.
+        var OAUTH_CLIENT_ID = '';
 
         var emailjsReady = false;
 
@@ -8399,6 +9149,24 @@
         }
         function apiLogin(email, password) {
             return fbAuth('signInWithPassword', { email: email, password: password, returnSecureToken: true });
+        }
+        // Ask Firebase to e-mail a password-reset link. No token is returned, so
+        // this bypasses fbAuth (which requires one).
+        function apiSendPasswordReset(email) {
+            if (!apiEnabled()) return Promise.resolve({ ok: false, error: 'apiDisabled', _status: 0 });
+            return fetch(fbAuthUrl('sendOobCode'), {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ requestType: 'PASSWORD_RESET', email: email })
+            }).then(function(res) {
+                return res.json().catch(function() { return {}; }).then(function(json) {
+                    if (res.ok) return { ok: true, _status: res.status };
+                    var msg = (json.error && (json.error.message || json.error.status)) || 'resetEmailFailed';
+                    return { ok: false, error: msg, _status: res.status };
+                });
+            }).catch(function() {
+                return { ok: false, error: 'network', _status: 0 };
+            });
         }
         function apiLogout() {
             // Firebase tokens are stateless; the client just discards them.
@@ -8574,6 +9342,7 @@
             var record = {
                 id: user.id, username: user.username, email: user.email, phone: user.phone,
                 createdAt: user.createdAt,
+                uid: user.uid || '', provider: user.provider || '',
                 pw: user.pw, dek: user.dek, dekRec: user.dekRec, recovery: user.recovery,
                 recCodeEnc: user.recCodeEnc, pin: user.pin, dekPin: user.dekPin
             };
@@ -8970,7 +9739,6 @@
             // Always download full backup first (this is the reliable restore source)
             // Don't open Drive popup during email flow (user is focused on email)
             exportBackup({ offerDrive: false });
-            try { localStorage.setItem(getBackupTrackKey(), new Date().toISOString()); } catch (e) {}
 
             var safe = buildEmailSafePayload();
             var instructions =
@@ -9331,6 +10099,49 @@
             });
         }
 
+        // Decode a photo for the preview only; the original bytes are never touched.
+        function loadImageForThumb(file) {
+            return new Promise(function(resolve, reject) {
+                var url = null;
+                try { url = URL.createObjectURL(file); } catch (e) { reject(e); return; }
+                var img = new Image();
+                img.onload = function() { resolve({ img: img, url: url }); };
+                img.onerror = function() {
+                    try { URL.revokeObjectURL(url); } catch (e) {}
+                    reject(new Error('decode failed'));
+                };
+                img.src = url;
+            });
+        }
+
+        function makeThumbFromImg(img, maxDim, q) {
+            try {
+                var scale = Math.min(1, maxDim / Math.max(img.width || 1, img.height || 1));
+                var w = Math.max(1, Math.round((img.width || 1) * scale));
+                var h = Math.max(1, Math.round((img.height || 1) * scale));
+                var c = document.createElement('canvas');
+                c.width = w; c.height = h;
+                var ctx = c.getContext('2d');
+                if (!ctx) return '';
+                ctx.imageSmoothingEnabled = true;
+                ctx.imageSmoothingQuality = 'high';
+                ctx.drawImage(img, 0, 0, w, h);
+                return c.toDataURL('image/jpeg', q || 0.7);
+            } catch (e) { return ''; }
+        }
+
+        function readFileBytes(file) {
+            if (file && typeof file.arrayBuffer === 'function') {
+                return file.arrayBuffer().then(function (b) { return new Uint8Array(b); });
+            }
+            return new Promise(function(resolve, reject) {
+                var r = new FileReader();
+                r.onload = function(e) { resolve(new Uint8Array(e.target.result)); };
+                r.onerror = function() { reject(new Error('read failed')); };
+                r.readAsArrayBuffer(file);
+            });
+        }
+
         function captureLiveVideoFrame() {
             try {
                 var cameraVideoEl = $('#cameraVideo');
@@ -9432,13 +10243,35 @@
             return file;
         }
 
+        // A phone clip is copied through the WebView bridge as base64 when it
+        // goes to Drive; beyond ~100 MB the double copy can exhaust app memory.
+        var VIDEO_MAX_BYTES = 100 * 1024 * 1024;
+
         function processFile(file, presetThumbnail) {
             return new Promise(function(resolve, reject) {
                 file = normalizeMediaFile(file);
                 var type = (file.type || '').startsWith('video/') ? 'video' : 'image';
                 if (type === 'image') {
-                    resizeImage(file).then(function(data) {
-                        resolve({ type: 'image', data: data, thumbnail: '', mime: dataUrlMime(data) || 'image/jpeg' });
+                    // Keep the untouched original as the main copy: re-encoding a
+                    // photo is what erases fine orthopaedic detail. Only the small
+                    // preview is compressed. Without a media store the inline
+                    // data URL is the only copy, so fall back to the old
+                    // near-HD compromise rather than risk the storage quota.
+                    var keepOriginal = mediaStoreUsable();
+                    loadImageForThumb(file).then(function(dec) {
+                        var thumb = makeThumbFromImg(dec.img, 320, 0.7);
+                        try { URL.revokeObjectURL(dec.url); } catch (e) {}
+                        if (!keepOriginal) {
+                            return resizeImage(file).then(function(data) {
+                                resolve({ type: 'image', data: data, thumbnail: thumb, mime: 'image/jpeg' });
+                            });
+                        }
+                        return readFileBytes(file).then(function(bytes) {
+                            resolve({
+                                type: 'image', bytes: bytes, thumbnail: thumb,
+                                mime: file.type || 'image/jpeg'
+                            });
+                        });
                     }).catch(reject);
                 } else {
                     var objectUrl = null;
@@ -9446,6 +10279,23 @@
                     var thumbPromise = presetThumbnail
                         ? Promise.resolve(presetThumbnail)
                         : (objectUrl ? generateVideoThumbnailFromSrc(objectUrl) : Promise.resolve(''));
+                    var videoMime = (file.type || 'video/webm').split(';')[0];
+                    if (mediaStoreUsable()) {
+                        // The clip has a home outside the record (and a Drive copy):
+                        // carry it as bytes so no base64 string is built in memory.
+                        thumbPromise.then(function(thumb) {
+                            var finalThumb = thumb
+                                ? Promise.resolve(thumb)
+                                : (objectUrl ? generateVideoThumbnailFromSrc(objectUrl).catch(function() { return ''; }) : Promise.resolve(''));
+                            return finalThumb.then(function(t2) {
+                                return readFileBytes(file).then(function(bytes) {
+                                    if (objectUrl) try { URL.revokeObjectURL(objectUrl); } catch (e) {}
+                                    resolve({ type: 'video', bytes: bytes, thumbnail: t2 || '', mime: videoMime });
+                                });
+                            });
+                        }).catch(reject);
+                        return;
+                    }
                     var r = new FileReader();
                     r.onload = function(e) {
                         var videoData = e.target.result;
@@ -9499,6 +10349,18 @@
                         continue;
                     }
                 }
+                if (isVid && !mediaStoreUsable()) {
+                    // In a browser there is no Drive mirror: a video would live only
+                    // as a huge inline blob that cannot fit the cloud sync document.
+                    showToast(t('videoNeedsApp'), 'info');
+                    continue;
+                }
+                if (isVid && f.size > VIDEO_MAX_BYTES) {
+                    showToast(t('videoTooLarge')
+                        .replace('{n}', String(Math.round(f.size / 1048576)))
+                        .replace('{max}', String(Math.round(VIDEO_MAX_BYTES / 1048576))), 'error');
+                    continue;
+                }
                 try {
                     var result = await processFile(f, isVid ? (presetThumbnail || '') : '');
                     var mid = 'm_' + Date.now().toString(36) + '_' + i + Math.random().toString(36).slice(2, 6);
@@ -9511,12 +10373,14 @@
                         caption: caption || '',
                         uploadedAt: new Date().toISOString()
                     };
-                    if (MediaStore.available() && sessionDEK) {
+                    if (mediaStoreUsable()) {
                         try {
-                            item.file = await MediaStore.putFromDataUrl(mid + '.bin', result.data);
+                            item.file = result.bytes
+                                ? await MediaStore.put(mid + '.bin', result.bytes)
+                                : await MediaStore.putFromDataUrl(mid + '.bin', result.data);
                         } catch (e2) { item.file = ''; }
                         var thumbData = result.thumbnail || '';
-                        if (!thumbData && result.type === 'image') {
+                        if (!thumbData && result.type === 'image' && result.data) {
                             thumbData = await makeImageThumbnail(result.data);
                         }
                         if (thumbData && item.file) {
@@ -9526,8 +10390,12 @@
                         }
                     }
                     if (!item.file) {
-                        // No external store available - keep it inline so nothing is lost.
-                        item.data = result.data;
+                        // No external store (or its write failed) - keep it inline so
+                        // nothing is lost. Recompress only in this rare fallback.
+                        if (!result.data && result.type === 'image') {
+                            try { result.data = await resizeImage(f); } catch (e4) {}
+                        }
+                        item.data = result.data || '';
                         item.thumbnail = result.thumbnail || '';
                     }
                     media.push(item);
@@ -9978,16 +10846,16 @@
             loginForm.addEventListener('submit', function(e) {
                 e.preventDefault();
                 loginError.textContent = '';
-                var username = loginUser.value.trim(), password = loginPass.value;
+                var email = loginUser.value.trim(), password = loginPass.value;
                 loginUser.classList.remove('error');
                 loginPass.classList.remove('error');
-                if (!username) { loginUser.classList.add('error'); loginUser.focus(); return; }
+                if (!email) { loginUser.classList.add('error'); loginUser.focus(); return; }
                 if (!password) { loginPass.classList.add('error'); loginPass.focus(); return; }
                 if (!cryptoAvailable()) { loginError.textContent = t('securityUnavailable'); return; }
                 var throttleMsg = authBusyMessage();
                 if (throttleMsg) { loginError.textContent = throttleMsg; return; }
                 var btn = loginForm.querySelector('button[type="submit"]');
-                withBusy(btn, t('signingIn'), signIn(username, password)).then(function(res) {
+                withBusy(btn, t('signingIn'), signIn(email, password)).then(function(res) {
                     if (!res.ok) {
                         noteAuthFailure();
                         loginError.textContent = authBusyMessage() || res.error || t('wrongPassword');
@@ -9995,8 +10863,8 @@
                         return;
                     }
                     noteAuthSuccess();
+                    googlePendingReset = null;   // a password sign-in abandons any PIN reset
                     return enterApp(res.user).then(function() {
-                        showToast(t('welcomeBack') + res.user.username, 'success');
                         if (res.recoveryCode) showRecoveryCodeModal(res.recoveryCode, true);
                         // A PIN is short by design, so it must not trip the weak-password check.
                         if (!res.viaPin && passwordProblem(password, res.user.username)) showForcePasswordModal(res.user);
@@ -10010,38 +10878,41 @@
             registerForm.addEventListener('submit', function(e) {
                 e.preventDefault();
                 regError.textContent = '';
-                var username = regUser.value.trim(), password = regPass.value, confirm = regPassConfirm.value;
+                var password = regPass.value, confirm = regPassConfirm.value;
                 var emailEl = document.getElementById('regEmail');
                 var phoneEl = document.getElementById('regPhone');
                 var email = emailEl ? emailEl.value.trim() : '';
                 var phone = phoneEl ? phoneEl.value.trim() : '';
-                regUser.classList.remove('error');
+                var username = email;
                 regPass.classList.remove('error');
                 regPassConfirm.classList.remove('error');
                 if (emailEl) emailEl.classList.remove('error');
                 if (phoneEl) phoneEl.classList.remove('error');
-                if (!username || username.length < 3) { regError.textContent = t('usernameMin'); regUser.classList.add('error'); regUser.focus(); return; }
-                if (/[^a-zA-Z0-9_]/.test(username)) { regError.textContent = t('usernameInvalid'); regUser.classList.add('error'); return; }
-                if (password !== confirm) { regError.textContent = t('passwordMismatch'); regPassConfirm.classList.add('error'); regPassConfirm.focus(); return; }
-                var pwProb = passwordProblem(password, username);
-                if (pwProb) { regError.textContent = pwProb; regPass.classList.add('error'); regPass.focus(); return; }
                 if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
                     regError.textContent = t('validRecoveryEmail');
                     if (emailEl) { emailEl.classList.add('error'); emailEl.focus(); }
                     return;
                 }
+                if (password !== confirm) { regError.textContent = t('passwordMismatch'); regPassConfirm.classList.add('error'); regPassConfirm.focus(); return; }
+                var pwProb = passwordProblem(password, email);
+                if (pwProb) { regError.textContent = pwProb; regPass.classList.add('error'); regPass.focus(); return; }
                 if (normalizePhone(phone).length < 7) {
                     regError.textContent = t('phoneForAccount');
                     if (phoneEl) { phoneEl.classList.add('error'); phoneEl.focus(); }
                     return;
                 }
-                if (findUser(username)) { regError.textContent = t('usernameTaken'); regUser.classList.add('error'); return; }
+                if (findUserByEmail(email) || findUser(email)) {
+                    regError.textContent = t('emailAlreadyRegistered');
+                    if (emailEl) { emailEl.classList.add('error'); emailEl.focus(); }
+                    return;
+                }
                 if (!cryptoAvailable()) { regError.textContent = t('securityUnavailable'); return; }
                 var btn = registerForm.querySelector('button[type="submit"]');
-                withBusy(btn, t('creating'), registerAccount(username, password, email, phone)).then(function(res) {
+                withBusy(btn, t('creating'), registerAccount(email, password, email, phone)).then(function(res) {
                     return enterApp(res.user).then(function() {
                         showToast(t('accountCreated') + res.user.username, 'success');
-                        showRecoveryCodeModal(res.recoveryCode, false);
+                        // Offer the fast PIN unlock once; the password still works.
+                        if (sessionDEK && !hasPin(res.user)) showPinSetup(res.user, sessionDEK, 'add');
                     });
                 }).catch(function(err) {
                     console.warn(err);
@@ -10052,7 +10923,7 @@
 
             loginUser.addEventListener('input', function() { loginUser.classList.remove('error'); loginError.textContent = ''; });
             loginPass.addEventListener('input', function() { loginPass.classList.remove('error'); loginError.textContent = ''; });
-            regUser.addEventListener('input', function() { regUser.classList.remove('error'); regError.textContent = ''; });
+            regEmail.addEventListener('input', function() { regEmail.classList.remove('error'); regError.textContent = ''; });
             regPass.addEventListener('input', function() { regPass.classList.remove('error'); regError.textContent = ''; });
             regPassConfirm.addEventListener('input', function() { regPassConfirm.classList.remove('error'); regError.textContent = ''; });
 
@@ -10164,7 +11035,7 @@
                     }
                 }
                 if (!valid) return;
-                var np = addPatient({
+                addPatient({
                     id: patientId,
                     name: name,
                     age: age,
@@ -10173,10 +11044,11 @@
                     history: history,
                     diagnosis: diagnosis,
                     intervention: intervention
+                }).then(function (ok) {
+                    hideModal(newPatientModal);
+                    renderQueue();
+                    if (ok) showToast(name + t('registerSuccess') + patientId, 'success');
                 });
-                hideModal(newPatientModal);
-                renderQueue();
-                showToast(np.name + t('registerSuccess') + np.id, 'success');
             });
 
             inputName.addEventListener('input', function() { inputName.classList.remove('error'); });
@@ -10206,8 +11078,9 @@
                             diagnosis: newDiag,
                             hospital: newHospital,
                             intervention: taInt ? taInt.value.trim() : ''
+                        }).then(function (ok) {
+                            if (ok) showToast(t('changesSaved'), 'info');
                         });
-                        showToast(t('changesSaved'), 'info');
                     }
                 }
                 navigateToQueue();
@@ -10217,11 +11090,12 @@
                 if (pendingDeleteId) {
                     var p = getPatient(pendingDeleteId);
                     var name = p ? p.name : t('patient');
-                    deletePatient(pendingDeleteId);
-                    pendingDeleteId = null;
-                    hideModal(confirmModal);
-                    navigateToQueue();
-                    showToast(name + t('recordDeleted'), 'info');
+                    deletePatient(pendingDeleteId).then(function (ok) {
+                        pendingDeleteId = null;
+                        hideModal(confirmModal);
+                        navigateToQueue();
+                        if (ok) showToast(name + t('recordDeleted'), 'info');
+                    });
                 }
             });
             cancelDeleteBtn.addEventListener('click', function() { pendingDeleteId = null; hideModal(confirmModal); });
@@ -10269,34 +11143,6 @@
                 if (e.target === driveUploadModal) hideModal(driveUploadModal);
             });
 
-            var backupReminderModal = $('#backupReminderModal');
-            var backupReminderLaterBtn = $('#backupReminderLaterBtn');
-            var backupReminderExportBtn = $('#backupReminderExportBtn');
-            if (backupReminderLaterBtn) backupReminderLaterBtn.addEventListener('click', function() {
-                localStorage.setItem(getBackupSnoozeKey(), String(Date.now() + 86400000));
-                hideModal(backupReminderModal);
-            });
-            if (backupReminderExportBtn) backupReminderExportBtn.addEventListener('click', function() {
-                hideModal(backupReminderModal);
-                exportBackup({ offerDrive: true });
-            });
-            var backupReminderEmailBtn = document.getElementById('backupReminderEmailBtn');
-            if (backupReminderEmailBtn) backupReminderEmailBtn.addEventListener('click', function() {
-                var em = document.getElementById('backupReminderEmail');
-                var emailInput = document.getElementById('backupEmailInput');
-                if (em && emailInput && em.value.trim()) emailInput.value = em.value.trim();
-                else if (emailInput && !emailInput.value) emailInput.value = getSavedBackupEmail();
-                hideModal(backupReminderModal);
-                // open backup modal for email send
-                showModal(backupModal);
-                if (emailInput && emailInput.value.trim()) {
-                    setTimeout(function() { sendEmailBackup(); }, 300);
-                } else {
-                    showToast(t('enterEmailThenSend'), 'info');
-                }
-            });
-            // prefill reminder email
-            var _origShowReminder = null;
             backupModal.addEventListener('click', function(e) { if (e.target === backupModal) hideModal(backupModal); });
 
             activityBtnHeader.addEventListener('click', function() {
@@ -10587,7 +11433,7 @@
         }
 
         function forgotShow(step) {
-            [1, 2, 3, 4].forEach(function(n) {
+            [1, 2, 3, 4, 5].forEach(function(n) {
                 var el = document.getElementById('forgotStep' + n);
                 if (el) el.classList.toggle('pcl-hidden', n !== step);
             });
@@ -10637,12 +11483,30 @@
                     });
                 });
             }
+            var lo = $id('lockOtherBtn');
+            if (lo) lo.addEventListener('click', function() {
+                lockUsePassword = lockPinMode();      // flip between PIN and password
+                applyLockMode();
+                try { $id('lockPassword').focus(); } catch (e) {}
+            });
             var lf = $id('lockForgotBtn');
             if (lf) lf.addEventListener('click', function() {
+                var u = lockedUser;
+                var viaGoogle = !!(u && u.uid && googleConfigured());
                 lockedUser = null; sessionDEK = null; currentUser = null;
                 hideLockScreen();
                 clearSession();
                 if (typeof resetUserState === 'function') resetUserState();
+                if (viaGoogle) {
+                    // Self-service PIN reset: a fresh Google sign-in releases the
+                    // escrowed key, then the user picks a new PIN.
+                    googlePendingReset = { uid: u.uid, email: u.email || '' };
+                    showView(authView);
+                    showAuthPanelByName('loginPanel');
+                    googleShowError(t('googleResetHint'));
+                    initGoogleAuth();
+                    return;
+                }
                 resetForgotUI();
                 showView(authView);
                 showAuthPanelByName('forgotPanel');
@@ -10695,6 +11559,11 @@
             var rcDone = $id('recCodeDoneBtn');
             if (rcDone) rcDone.addEventListener('click', function() {
                 var m = $id('recoveryCodeModal'); if (m) hideModal(m);
+                // A password account still unlocks by password; the PIN is the
+                // fast path, so offer it once right after sign-up.
+                if (currentUser && !hasPin(currentUser) && sessionDEK) {
+                    showPinSetup(currentUser, sessionDEK, 'add');
+                }
             });
 
             // ------------------------------------------------- forced password change
@@ -10717,13 +11586,26 @@
             });
 
             // ------------------------------------------------------ forgot: step 1→2
-            var fStart = $id('forgotStartBtn');
-            if (fStart) fStart.addEventListener('click', function() {
+            var fStart = $id('forgotStartBtn');            if (fStart) fStart.addEventListener('click', function() {
                 forgotErr(''); forgotInfo('');
                 var uname = (($id('forgotUser') || {}).value || '').trim();
                 if (!uname) { forgotErr(t('enterUsername')); return; }
                 var r = startPasswordReset(uname);
-                if (!r.ok) { forgotErr(r.error); return; }
+                if (!r.ok) {
+                    // No local copy of this account: the server can still send a
+                    // reset link, and signing in afterwards restores the data key
+                    // through escrow.
+                    if (apiEnabled() && uname.indexOf('@') !== -1) {
+                        var sh = $id('forgotServerHint');
+                        if (sh) sh.textContent = t('forgotServerHint').replace('{email}', uname);
+                        var sb = $id('forgotSendResetEmailBtn');
+                        if (sb) { sb.disabled = false; sb.textContent = t('sendResetLink'); }
+                        forgotShow(5);
+                        return;
+                    }
+                    forgotErr(r.error);
+                    return;
+                }
                 var hint = $id('forgotChannelHint');
                 var parts = [];
                 if (r.hasEmail) parts.push('e-mail ' + r.maskedEmail);
@@ -10736,6 +11618,17 @@
                 var eb = $id('forgotEmailBlock'); if (eb) eb.classList.toggle('pcl-hidden', !r.hasEmail);
                 var pb = $id('forgotPhoneBlock'); if (pb) pb.classList.toggle('pcl-hidden', !r.hasPhone);
                 forgotShow(2);
+            });
+
+            var fSendResetEmail = $id('forgotSendResetEmailBtn');
+            if (fSendResetEmail) fSendResetEmail.addEventListener('click', function() {
+                forgotErr(''); forgotInfo('');
+                var email = (($id('forgotUser') || {}).value || '').trim();
+                if (!email) { forgotErr(t('enterUsername')); return; }
+                withBusy(this, t('sending'), apiSendPasswordReset(email)).then(function(r) {
+                    if (!r.ok) { forgotErr(t('resetLinkFailed')); return; }
+                    forgotInfo(t('resetLinkSent'));
+                });
             });
 
             var fSendOtp = $id('forgotSendOtpBtn');
@@ -11107,6 +12000,8 @@
             initEmailJS();
             setupEvents();
             setupSecurityEvents();
+            setupGoogleAuthEvents();
+            initGoogleAuth();
             if (!cryptoAvailable()) {
                 showToast(t('noWebCrypto'), 'error');
             }
@@ -11127,11 +12022,13 @@
                 showAuthPanelByName('loginPanel');
                 return;
             }
-            // Cold start always costs a password: the data key is derived from it.
+            // Cold start always costs a credential: the data key is derived from it.
             if (requireUnlockOnOpen()) {
                 lockedUser = user;
+                lockUsePassword = false;
                 showView(queueView);
-                showLockScreen('Enter your password to continue.');
+                var openNoteKey = hasPin(user) ? 'lockNotePin' : 'lockNotePw';
+                showLockScreen(t(openNoteKey), openNoteKey);
             } else {
                 clearSession();
                 showView(authView);
@@ -11148,7 +12045,12 @@
             var sel = id('profileLockSelect');
             if (sel) sel.value = String(getLockMs());
             var op = id('profileLockOpen');
-            if (op) op.value = requireUnlockOnOpen() ? '1' : '0';
+            if (op) {
+                // With a PIN, "unlock on open" is not optional — the PIN is the sign-in.
+                var pinForced = hasPin(currentUser);
+                op.value = (pinForced || requireUnlockOnOpen()) ? '1' : '0';
+                op.disabled = pinForced;
+            }
             var box = id('profileRecValue');
             if (box) { box.textContent = '—'; box.classList.add('pcl-hidden'); }
             var pinOn = hasPin(currentUser);
@@ -11222,16 +12124,16 @@
             G ? G.status({}) : Promise.resolve(null)
         ]).then(function (r) {
             var man = r[0], mir = r[1], drv = r[2], rows = [];
-            rows.push('Vault: ' + (window.__vaultMode === 'fs' ? 'ACTIVE — hidden folder on this device' : 'inactive (browser preview)'));
-            rows.push('Records: ' + (man && man.count != null ? man.count : '—') +
-                      ' · updated ' + (man && man.updatedAt ? new Date(man.updatedAt).toLocaleString() : '—'));
-            rows.push('Mirror: ' + (mir && mir.granted
-                ? 'folder granted · last ' + (mir.lastMirror ? new Date(mir.lastMirror).toLocaleString() : 'not yet')
-                : 'not granted yet'));
-            rows.push('Drive: ' + (drv && drv.signedIn
-                ? 'signed in · last sync ' + (drv.lastSync ? new Date(drv.lastSync).toLocaleString() : 'not yet')
-                    + (window.__driveLastError ? ' · last attempt failed: ' + window.__driveLastError : '')
-                : 'signed out'));
+            rows.push(t('driveStatusVault') + ': ' + (window.__vaultMode === 'fs' ? t('driveStatusVaultActive') : t('driveStatusVaultInactive')));
+            rows.push(t('driveStatusRecords') + ': ' + (man && man.count != null ? man.count : '—') +
+                      ' · ' + (man && man.updatedAt ? new Date(man.updatedAt).toLocaleString() : t('driveStatusNotYet')));
+            rows.push(t('driveStatusMirror') + ': ' + (mir && mir.granted
+                ? t('driveStatusFolderGranted').replace('{when}', mir.lastMirror ? new Date(mir.lastMirror).toLocaleString() : t('driveStatusNotYet'))
+                : t('driveStatusNotGranted')));
+            rows.push(t('driveStatusDrive') + ': ' + (drv && drv.signedIn
+                ? t('driveStatusSignedIn').replace('{when}', drv.lastSync ? new Date(drv.lastSync).toLocaleString() : t('driveStatusNotYet'))
+                    + (window.__driveLastError ? ' · ' + t('driveStatusLastFailed').replace('{error}', window.__driveLastError) : '')
+                : t('driveStatusSignedOut')));
             box.innerHTML = rows.map(function (x) { return '<div>• ' + x + '</div>'; }).join('');
             var so = document.getElementById('vaultDriveOut'), si = document.getElementById('vaultDriveSign');
             if (so && si) {
@@ -11275,15 +12177,21 @@
         document.getElementById('vaultDriveSign').addEventListener('click', function () {
             if (!G) { showToast(t('driveSyncNeedsApp'), 'error'); return; }
             G.signIn({}).then(function (r) {
-                showToast(r && r.signedIn ? 'Drive connected — silent sync is ON' : 'Sign-in cancelled', r && r.signedIn ? 'success' : 'error');
-                if (r && r.signedIn) window.driveSchedule();
+                showToast(t(r && r.signedIn ? 'driveConnected' : 'driveSignInCancelled'), r && r.signedIn ? 'success' : 'error');
+                if (r && r.signedIn) {
+                    window.driveSchedule();
+                    // Media recorded before Drive was connected still needs its copy.
+                    if (typeof driveSyncMedia === 'function') {
+                        driveSyncMedia().catch(function (e) { console.warn('drive media sync failed', e); });
+                    }
+                }
                 refreshStatus();
             }).catch(function (e) { showToast(t('driveSignInFailed') + ': ' + ((e && e.message) || e), 'error'); });
         });
         document.getElementById('vaultDriveSync').addEventListener('click', function () {
             if (!G) { showToast(t('driveSyncNeedsApp'), 'error'); return; }
             G.uploadSnapshot({ auto: false }).then(function (r) {
-                showToast(r && r.ok ? 'Snapshot synced to Drive (hidden app-data folder)' : 'Not signed in to Drive', r && r.ok ? 'success' : 'error');
+                showToast(t(r && r.ok ? 'driveSnapshotUploaded' : 'driveNotSignedIn'), r && r.ok ? 'success' : 'error');
                 refreshStatus();
             }).catch(function () { showToast(t('driveSyncFailed'), 'error'); });
         });
@@ -11316,7 +12224,8 @@
 </script>
 <script>
     // "Add to Home Screen" support for the website only. The Android app never
-    // registers a service worker.
+    // registers a service worker. sw.js is network-only, so it never serves a
+    // stale copy of the app (hosting sends no-store for HTML).
     (function () {
         try {
             if (!('serviceWorker' in navigator)) return;
