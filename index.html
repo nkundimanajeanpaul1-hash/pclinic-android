@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://accounts.google.com; style-src 'self' 'unsafe-inline' https://accounts.google.com; img-src 'self' data: blob:; media-src 'self' blob:; font-src 'self' data:; connect-src 'self' https://api.emailjs.com https://us-central1-pclinic-20d81.cloudfunctions.net https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://firestore.googleapis.com https://accounts.google.com; child-src 'self' blob:; frame-src 'self' blob: https://accounts.google.com; object-src 'none'; base-uri 'self'; form-action 'self';">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://accounts.google.com; style-src 'self' 'unsafe-inline' https://accounts.google.com; img-src 'self' data: blob:; media-src 'self' blob:; font-src 'self' data:; connect-src 'self' https://api.emailjs.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://firestore.googleapis.com https://accounts.google.com; child-src 'self' blob:; frame-src 'self' blob: https://accounts.google.com; object-src 'none'; base-uri 'self'; form-action 'self';">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=2.0, user-scalable=yes">
     <title>PClinic Pro - Drive Backup</title>
     <meta name="apple-mobile-web-app-capable" content="yes">
@@ -1990,7 +1990,7 @@
                     <form id="loginForm" novalidate>
                         <div class="ios-form-group">
                             <div class="ios-input-wrap">
-                                <input type="text" class="ios-form-input" id="loginUser" placeholder="Username or e-mail" data-i18n-placeholder="usernameOrEmailPh" required autocomplete="off">
+                                <input type="email" class="ios-form-input" id="loginUser" placeholder="E-mail" data-i18n-placeholder="usernameOrEmailPh" required autocomplete="username">
                                 <div class="ios-input-icon">
                                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
                                 </div>
@@ -2019,7 +2019,7 @@
 
                     <div id="forgotStep1">
                         <div class="ios-form-group">
-                            <input type="text" class="ios-form-input" id="forgotUser" placeholder="Username" data-i18n-placeholder="usernamePh" autocomplete="off">
+                            <input type="email" class="ios-form-input" id="forgotUser" placeholder="E-mail" data-i18n-placeholder="usernamePh" autocomplete="username">
                         </div>
                         <button type="button" class="ios-btn ios-btn-primary ios-btn-block" id="forgotStartBtn">Continue</button>
                     </div>
@@ -2076,12 +2076,8 @@
                 <div id="registerPanel" class="ios-auth-panel">
                     <form id="registerForm" novalidate>
                         <div class="ios-form-group">
-                            <div class="ios-input-wrap">
-                                <input type="text" class="ios-form-input" id="regUser" placeholder="Choose a username" data-i18n-placeholder="regUserPh" required autocomplete="off">
-                                <div class="ios-input-icon">
-                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-                                </div>
-                            </div>
+                            <input type="email" class="ios-form-input" id="regEmail" placeholder="E-mail" data-i18n-placeholder="emailPh" required autocomplete="username">
+                            <div style="font-size:10px;color:var(--ios-tertiary-label);margin-top:4px;" data-i18n="regEmailHint">This is your sign-in name. Reset codes go here.</div>
                         </div>
                         <div class="ios-form-group">
                             <div class="ios-input-wrap">
@@ -2103,12 +2099,8 @@
                             </div>
                         </div>
                         <div class="ios-form-group">
-                            <input type="email" class="ios-form-input" id="regEmail" placeholder="Recovery e-mail" data-i18n-placeholder="secRecoveryEmail" required autocomplete="off">
-                            <div style="font-size:10px;color:var(--ios-tertiary-label);margin-top:4px;">A reset code is sent here if you forget your password.</div>
-                        </div>
-                        <div class="ios-form-group">
-                            <input type="tel" class="ios-form-input" id="regPhone" placeholder="Phone number (e.g. +250788000000)" data-i18n-placeholder="regPhonePh" required autocomplete="off">
-                            <div style="font-size:10px;color:var(--ios-tertiary-label);margin-top:4px;">Backup way to confirm your identity.</div>
+                            <input type="tel" class="ios-form-input" id="regPhone" placeholder="Phone number (e.g. +250788000000)" data-i18n-placeholder="regPhonePh" required autocomplete="tel">
+                            <div style="font-size:10px;color:var(--ios-tertiary-label);margin-top:4px;" data-i18n="regPhoneHint">Used to recover your account if you lose access.</div>
                         </div>
                         <button type="submit" class="ios-btn ios-btn-primary ios-btn-block" data-i18n="createAccount">Create Account</button>
                         <div class="ios-auth-error" id="regError"></div>
@@ -3522,6 +3514,15 @@
                 lf.setAttribute('data-i18n', fk);
                 lf.textContent = t(fk);
             }
+            // Keep the helper line in step with the field the user is typing in.
+            if (lockNoteEl) {
+                var nk = lockNoteEl.getAttribute('data-i18n');
+                if (nk === 'lockNotePin' || nk === 'lockNotePw') {
+                    var want = pinMode ? 'lockNotePin' : 'lockNotePw';
+                    lockNoteEl.setAttribute('data-i18n', want);
+                    lockNoteEl.textContent = t(want);
+                }
+            }
             if (lockErrorEl) lockErrorEl.textContent = '';
         }
 
@@ -3535,7 +3536,7 @@
             showLockScreen(note || '');
         }
 
-        function showLockScreen(note) {
+        function showLockScreen(note, noteKey) {
             // Always re-resolve: hideLockScreen() may have cached lockScreenEl earlier
             lockScreenEl = document.getElementById('lockScreen');
             lockPassEl   = document.getElementById('lockPassword');
@@ -3545,7 +3546,11 @@
             if (!lockScreenEl) return;
             lockUsePassword = false;
             if (lockUserEl) lockUserEl.textContent = (lockedUser && lockedUser.username) || '';
-            if (lockNoteEl) lockNoteEl.textContent = note || '';
+            if (lockNoteEl) {
+                lockNoteEl.textContent = note || '';
+                if (noteKey) lockNoteEl.setAttribute('data-i18n', noteKey);
+                else lockNoteEl.removeAttribute('data-i18n');
+            }
             applyLockMode();
             lockScreenEl.style.display = 'flex';
             try { document.body.classList.add('is-locked'); } catch (e) {}
@@ -4714,9 +4719,9 @@
         // the account locally, and unwrap the data key with the password.
         function signInFromServer(email, password) {
             // On a new device the account does not exist locally yet, so the
-            // server needs the e-mail identity — a username cannot find it.
+            // server needs the e-mail identity.
             if (String(email || '').indexOf('@') === -1) {
-                return Promise.resolve({ ok: false, error: 'On a new device, sign in with your e-mail address.' });
+                return Promise.resolve({ ok: false, error: t('signInEmailRequired') });
             }
             return apiLogin(email, password).then(function(res) {
                 if (!res.ok) {
@@ -4770,11 +4775,15 @@
             });
         }
 
-        // Sign-in entry point. The login field accepts a username OR an
-        // e-mail. Local accounts sign in locally first (works offline);
-        // unknown accounts fall through to the server (new device).
-        function signIn(username, password) {
-            var u = findUser(username) || findUserByEmail(username);
+        // Sign-in entry point. Accounts are identified by e-mail only.
+        // Local accounts sign in locally first (works offline); unknown
+        // accounts fall through to the server (new device).
+        function signIn(email, password) {
+            var input = String(email || '').trim();
+            if (input.indexOf('@') === -1) {
+                return Promise.resolve({ ok: false, error: t('signInEmailRequired') });
+            }
+            var u = findUserByEmail(input) || findUser(input);
             if (u) {
                 return signInLocal(u, password).then(function(res) {
                     if (!res.ok) return res;
@@ -4783,7 +4792,7 @@
                     });
                 });
             }
-            if (apiEnabled()) return signInFromServer(username, password);
+            if (apiEnabled()) return signInFromServer(input, password);
             return Promise.resolve({ ok: false, error: t('accountNotFound') });
         }
 
@@ -4916,8 +4925,9 @@
         }
 
         // --------------------------------------------------- password reset (step 1)
-        function startPasswordReset(username) {
-            var u = findUser(username);
+        function startPasswordReset(email) {
+            var input = String(email || '').trim();
+            var u = findUserByEmail(input) || findUser(input);
             if (!u) return { ok: false, error: t('accountNotFound') };
             resetState = { user: u, otpOk: false, phoneOk: false, keepData: false, dek: null };
             return {
@@ -5400,7 +5410,8 @@
             lockUsePassword = false;
             hideModal(document.getElementById('pinSetupModal'));
             showView(queueView);
-            showLockScreen(t(hasPin(u) ? 'lockNotePin' : 'lockNotePw'));
+            var noteKey = hasPin(u) ? 'lockNotePin' : 'lockNotePw';
+            showLockScreen(t(noteKey), noteKey);
             return { ok: true, locked: true };
         }
 
@@ -5632,7 +5643,7 @@
                 passwordMismatch: 'Passwords do not match.',
                 pinMismatch: 'PINs do not match.',
                 passwordTooShort: 'Password must be at least 8 characters.',
-                pwMatchesUser: 'Password must not match your username.',
+                pwMatchesUser: 'Password must not match your e-mail.',
                 pwTooCommon: 'That password is too common — choose a unique one.',
                 pwNeedsLetterNumber: 'Use at least one letter and one number.',
                 pinTooShort: 'PIN must be at least {n} characters.',
@@ -5719,9 +5730,9 @@
                 lockPinForgot: 'Forgot PIN?',
                 lockUsePassword: 'Use password instead',
                 lockUsePin: 'Use PIN instead',
-                lockPinPh: 'Enter your 4-digit PIN',
-                lockNotePin: 'Enter your 4-digit PIN to continue.',
-                lockNotePw: 'Enter your password to continue.',
+                lockPinPh: 'Enter your PIN or password',
+                lockNotePin: 'Enter your PIN, or your password.',
+                lockNotePw: 'Enter your password, or your PIN.',
                 googleOr: 'or use your account',
                 googleContinue: 'Continue with Google',
                 googleSigningIn: 'Signing in with Google…',
@@ -5823,6 +5834,7 @@
                 // ---- runtime messages that used to be hardcoded English ----
                 storageFull: 'Storage full — export a backup and free space. New data may not persist.',
                 emailAlreadyRegistered: 'This e-mail already has a PClinic account. Tap "Sign in" and use the same e-mail and password. Creating it again would overwrite your cloud records.',
+                signInEmailRequired: 'Enter the e-mail address you signed up with.',
                 accountConflict: 'This device holds a different account for this e-mail. Your cloud records were left untouched. Clear this site\u2019s data in the browser, then sign in again.',
                 saveFailedNotice: 'This change could not be saved on this device. Please sign in again and retry.',
                 recordsUnreadable: 'Saved records on this device could not be read. Saving is paused so nothing is overwritten. Sign out and sign in again, or restore a backup.',
@@ -5902,12 +5914,15 @@
                 patientNamePh: 'Enter patient name',
                 regPhonePh: 'Phone number (e.g. +250788000000)',
                 regPassPh: 'Create a password',
-                regUserPh: 'Choose a username',
+                regUserPh: 'E-mail',
                 otpCodePh: '6-digit code',
                 forgotPhonePh: 'Phone number on the account',
                 loginPassPh: 'Password or PIN',
-                usernamePh: 'Username',
-                usernameOrEmailPh: 'Username or e-mail',
+                usernamePh: 'E-mail',
+                usernameOrEmailPh: 'E-mail',
+                emailPh: 'E-mail',
+                regEmailHint: 'This is your sign-in name. Reset codes go here.',
+                regPhoneHint: 'Used to recover your account if you lose access.',
                 emailCodeBody: 'Your PClinic Pro password reset code is:\n\n    {n}\n\nThis code expires in 10 minutes.\nIf you did not request it, you can ignore this message.',
                 emailCodeSubject: 'PClinic Pro — password reset code',
                 invalidBackupFile: 'Invalid backup file',
@@ -6052,7 +6067,7 @@
                 passwordMismatch: 'Les mots de passe ne correspondent pas.',
                 pinMismatch: 'Les codes PIN ne correspondent pas.',
                 passwordTooShort: 'Le mot de passe doit avoir au moins 8 caractères.',
-                pwMatchesUser: 'Le mot de passe ne doit pas correspondre à votre nom d\'utilisateur.',
+                pwMatchesUser: 'Le mot de passe ne doit pas correspondre à votre e-mail.',
                 pwTooCommon: 'Ce mot de passe est trop courant — choisissez-en un autre.',
                 pwNeedsLetterNumber: 'Utilisez au moins une lettre et un chiffre.',
                 pinTooShort: 'Le code PIN doit avoir au moins {n} caractères.',
@@ -6139,9 +6154,9 @@
                 lockPinForgot: 'Code PIN oublié ?',
                 lockUsePassword: 'Utiliser le mot de passe',
                 lockUsePin: 'Utiliser le code PIN',
-                lockPinPh: 'Saisissez votre code PIN à 4 chiffres',
-                lockNotePin: 'Saisissez votre code PIN à 4 chiffres pour continuer.',
-                lockNotePw: 'Saisissez votre mot de passe pour continuer.',
+                lockPinPh: 'Saisissez votre code PIN ou mot de passe',
+                lockNotePin: 'Saisissez votre code PIN, ou votre mot de passe.',
+                lockNotePw: 'Saisissez votre mot de passe, ou votre code PIN.',
                 googleOr: 'ou utilisez votre compte',
                 googleContinue: 'Continuer avec Google',
                 googleSigningIn: 'Connexion avec Google…',
@@ -6243,6 +6258,7 @@
                 // ---- runtime messages that used to be hardcoded English ----
                 storageFull: 'Stockage plein — exportez une sauvegarde et libérez de l’espace. Les nouvelles données risquent de ne pas être conservées.',
                 emailAlreadyRegistered: 'Cet e-mail a déjà un compte PClinic. Touchez « Se connecter » avec le même e-mail et le même mot de passe. Le recréer écraserait vos données dans le cloud.',
+                signInEmailRequired: 'Saisissez l’adresse e-mail utilisée lors de l’inscription.',
                 accountConflict: 'Cet appareil contient un autre compte pour cet e-mail. Vos données cloud n’ont pas été modifiées. Effacez les données de ce site dans le navigateur, puis reconnectez-vous.',
                 saveFailedNotice: 'Cette modification n’a pas pu être enregistrée sur cet appareil. Reconnectez-vous et réessayez.',
                 recordsUnreadable: 'Les dossiers enregistrés sur cet appareil sont illisibles. L’enregistrement est suspendu pour ne rien écraser. Déconnectez-vous puis reconnectez-vous, ou restaurez une sauvegarde.',
@@ -6322,12 +6338,15 @@
                 patientNamePh: 'Saisir le nom du patient',
                 regPhonePh: 'Numéro de téléphone (ex. +250788000000)',
                 regPassPh: 'Créez un mot de passe',
-                regUserPh: 'Choisissez un nom d\'utilisateur',
+                regUserPh: 'E-mail',
                 otpCodePh: 'Code à 6 chiffres',
                 forgotPhonePh: 'Numéro de téléphone du compte',
                 loginPassPh: 'Mot de passe ou code PIN',
-                usernamePh: 'Nom d\'utilisateur',
-                usernameOrEmailPh: 'Nom d\'utilisateur ou e-mail',
+                usernamePh: 'E-mail',
+                usernameOrEmailPh: 'E-mail',
+                emailPh: 'E-mail',
+                regEmailHint: 'C’est votre identifiant. Les codes de réinitialisation arrivent ici.',
+                regPhoneHint: 'Sert à récupérer votre compte en cas de perte d’accès.',
                 emailCodeBody: 'Votre code de réinitialisation du mot de passe PClinic Pro est :\n\n    {n}\n\nCe code expire dans 10 minutes.\nSi vous ne l’avez pas demandé, ignorez ce message.',
                 emailCodeSubject: 'PClinic Pro — code de réinitialisation du mot de passe',
                 invalidBackupFile: 'Fichier de sauvegarde invalide',
@@ -6472,7 +6491,7 @@
                 passwordMismatch: 'Amajambo ntabwo ahuje.',
                 pinMismatch: 'PIN ntihuje.',
                 passwordTooShort: 'Ijambo ry\'ibanga rigomba kugira inyuguti 8.',
-                pwMatchesUser: 'Ijambo ry\'ibanga ntirihure n\'izina ry\'ukoresha.',
+                pwMatchesUser: 'Ijambo ry\'ibanga ntirihure na e-mail yawe.',
                 pwTooCommon: 'Iri jambo ry\'ibanga rikunze gukoreshwa — hitamo irindi.',
                 pwNeedsLetterNumber: 'Koresha nibura inyuguti imwe n\'umubare umwe.',
                 pinTooShort: 'PIN igomba kugira ibimenyetso nibura {n}.',
@@ -6560,9 +6579,9 @@
                 lockPinForgot: 'Wibagiwe PIN?',
                 lockUsePassword: 'Koresha ijambo ry\'ibanga',
                 lockUsePin: 'Koresha PIN',
-                lockPinPh: 'Andika PIN yawe y\'imibare 4',
-                lockNotePin: 'Andika PIN yawe y\'imibare 4 kugira ngo ukomeze.',
-                lockNotePw: 'Andika ijambo ry\'ibanga kugira ngo ukomeze.',
+                lockPinPh: 'Andika PIN cyangwa ijambo ry\'ibanga',
+                lockNotePin: 'Andika PIN yawe, cyangwa ijambo ry\'ibanga.',
+                lockNotePw: 'Andika ijambo ry\'ibanga, cyangwa PIN yawe.',
                 googleOr: 'cyangwa ukoreshe konti yawe',
                 googleContinue: 'Komeza na Google',
                 googleSigningIn: 'Kwinjira na Google…',
@@ -6664,6 +6683,7 @@
                 // ---- runtime messages that used to be hardcoded English ----
                 storageFull: 'Ububiko bwuzuye — korana dosiye y’umukororombyra wandikwe maze urekure umwanya. Amakuru mashya ashobora kutabikwa.',
                 emailAlreadyRegistered: 'Iyi meyili isanzwe ifite konti ya PClinic. Kanda « Kwinjira » ukoreshe meyili n’ijambo ry’ibanga bimwe. Kuyihanga bundi bushya byasiba amakuru yawe yo kuri interineti.',
+                signInEmailRequired: 'Andika imeyili wakoresheje mu kwiyandikisha.',
                 accountConflict: 'Iki gikoresho gifite konti itandukanye n’iyi meyili. Amakuru yawe yo kuri interineti ntiyakozweho. Siba amakuru y’uru rubuga muri browser, hanyuma wongere winjire.',
                 saveFailedNotice: 'Iri hinduka ntiryabashije kubikwa kuri iki gikoresho. Ongera winjire, ugerageze.',
                 recordsUnreadable: 'Amadosiye yabitswe kuri iki gikoresho ntiyashoboye gusomwa. Kubika byahagaritswe kugira ngo hatagira icyandikwaho. Sohoka maze wongere winjire, cyangwa usubizemo kopi y’ububiko.',
@@ -6743,12 +6763,15 @@
                 patientNamePh: 'Andika izina ry\'umurwayi',
                 regPhonePh: 'Nimero ya telefone (urugero +250788000000)',
                 regPassPh: 'Kora ijambo ry\'ibanga',
-                regUserPh: 'Hitamo izina ry\'ukoresha',
+                regUserPh: 'E-mail',
                 otpCodePh: 'Kode y\'imibare 6',
                 forgotPhonePh: 'Nimero ya telefone iri kuri konti',
                 loginPassPh: 'Ijambo ry\'ibanga cyangwa PIN',
-                usernamePh: 'Izina ry\'ukoresha',
-                usernameOrEmailPh: 'Izina ry\'ukoresha cyangwa e-mail',
+                usernamePh: 'E-mail',
+                usernameOrEmailPh: 'E-mail',
+                emailPh: 'E-mail',
+                regEmailHint: 'Iyi niyo meyili yo kwinjira. Kode zo gusubiza zijyayo.',
+                regPhoneHint: 'Ikoreshwa mu kugarura konti yawe nurambiwe kwinjira.',
                 emailCodeBody: 'Kode yawo yo gusubiza ijambo ry\'ibanga rya PClinic Pro ni:\n\n    {n}\n\nIyi kode irangiza mu minota 10.\nNibuta wayisabye, ushobora kuyireka.',
                 emailCodeSubject: 'PClinic Pro — kode yo gusubiza ijambo ry\'ibanga',
                 invalidBackupFile: 'Dosiye y’umukororombyra si yo',
@@ -6960,7 +6983,7 @@
         var loginPanel = $('#loginPanel'), registerPanel = $('#registerPanel');
         var loginForm = $('#loginForm'), registerForm = $('#registerForm');
         var loginUser = $('#loginUser'), loginPass = $('#loginPass'), loginError = $('#loginError');
-        var regUser = $('#regUser'), regPass = $('#regPass'), regPassConfirm = $('#regPassConfirm'), regError = $('#regError');
+        var regEmail = $('#regEmail'), regPass = $('#regPass'), regPassConfirm = $('#regPassConfirm'), regError = $('#regError');
         var showRegister = $('#showRegister'), showLogin = $('#showLogin');
         var toggleLoginPass = $('#toggleLoginPass'), toggleRegPass = $('#toggleRegPass');
         var logoutBtn = $('#logoutBtn');
@@ -7593,6 +7616,11 @@
                 // defer until the user has dismissed it.
                 var rc = document.getElementById('recoveryCodeModal');
                 if (rc && rc.classList.contains('active')) {
+                    setTimeout(showPrivacyNoticeIfDue, 1500);
+                    return;
+                }
+                var ps = document.getElementById('pinSetupModal');
+                if (ps && ps.classList.contains('active')) {
                     setTimeout(showPrivacyNoticeIfDue, 1500);
                     return;
                 }
@@ -8778,7 +8806,7 @@
 
         function exportBackup(options) {
             options = options || {};
-            var offerDrive = options.offerDrive !== false;
+            var offerDrive = options.offerDrive === true;
             var btn = options.button || null;
             var password = options.password || '';
             var finish = function(pack) {
@@ -8814,8 +8842,8 @@
         //  CONFIGURATION — SMS relay  (password-reset codes by text message)
         //  Twilio / Africa's Talking keys must NEVER live in this file: anyone with the
         //  APK can read it. Point this at a small hosted endpoint that holds the
-        //  credentials server-side (a Firebase Cloud Function on project pclinic-20d81
-        //  works) and have it POST the message. Expected contract:
+        //  credentials server-side (any HTTPS endpoint you control works) and have
+        //  it POST the message. Expected contract:
         //      POST <SMS_RELAY_URL>  {"to":"+2507…","code":"482913","app":"pclinic"}
         //      200 on accepted, non-2xx otherwise.
         //  Leave it as '' to disable SMS recovery — the e-mail code and the
@@ -8833,12 +8861,13 @@
         //  stays encrypted on-device with the password-derived key.
         //  Photos/videos sync separately to the user's Google Drive (visible
         //  "PClinic Media" folder) via the native Drive plugin.
-        //  The apiKey below is a public identifier (same project as the
-        //  PClinic web app), not a secret. Leave apiKey '' for local-only mode.
+        //  The apiKey below is a public identifier for this app's own project
+        //  (pclinic-android-app), separate from the PClinic web app, not a
+        //  secret. Leave apiKey '' for local-only mode.
         // ============================================================================
         var FIREBASE = {
-            apiKey: 'AIzaSyAcfSN-Z1FRnZC6bASy3b08abPDYJr-Ku0',
-            projectId: 'pclinic-20d81'
+            apiKey: 'AIzaSyCfic-_oJXOw-szDZEI_eFZGE-zaObCEUk',
+            projectId: 'pclinic-android-app'
         };
 
         // Google sign-in: paste the OAuth *Web* client ID here
@@ -10639,16 +10668,16 @@
             loginForm.addEventListener('submit', function(e) {
                 e.preventDefault();
                 loginError.textContent = '';
-                var username = loginUser.value.trim(), password = loginPass.value;
+                var email = loginUser.value.trim(), password = loginPass.value;
                 loginUser.classList.remove('error');
                 loginPass.classList.remove('error');
-                if (!username) { loginUser.classList.add('error'); loginUser.focus(); return; }
+                if (!email) { loginUser.classList.add('error'); loginUser.focus(); return; }
                 if (!password) { loginPass.classList.add('error'); loginPass.focus(); return; }
                 if (!cryptoAvailable()) { loginError.textContent = t('securityUnavailable'); return; }
                 var throttleMsg = authBusyMessage();
                 if (throttleMsg) { loginError.textContent = throttleMsg; return; }
                 var btn = loginForm.querySelector('button[type="submit"]');
-                withBusy(btn, t('signingIn'), signIn(username, password)).then(function(res) {
+                withBusy(btn, t('signingIn'), signIn(email, password)).then(function(res) {
                     if (!res.ok) {
                         noteAuthFailure();
                         loginError.textContent = authBusyMessage() || res.error || t('wrongPassword');
@@ -10671,38 +10700,41 @@
             registerForm.addEventListener('submit', function(e) {
                 e.preventDefault();
                 regError.textContent = '';
-                var username = regUser.value.trim(), password = regPass.value, confirm = regPassConfirm.value;
+                var password = regPass.value, confirm = regPassConfirm.value;
                 var emailEl = document.getElementById('regEmail');
                 var phoneEl = document.getElementById('regPhone');
                 var email = emailEl ? emailEl.value.trim() : '';
                 var phone = phoneEl ? phoneEl.value.trim() : '';
-                regUser.classList.remove('error');
+                var username = email;
                 regPass.classList.remove('error');
                 regPassConfirm.classList.remove('error');
                 if (emailEl) emailEl.classList.remove('error');
                 if (phoneEl) phoneEl.classList.remove('error');
-                if (!username || username.length < 3) { regError.textContent = t('usernameMin'); regUser.classList.add('error'); regUser.focus(); return; }
-                if (/[^a-zA-Z0-9_]/.test(username)) { regError.textContent = t('usernameInvalid'); regUser.classList.add('error'); return; }
-                if (password !== confirm) { regError.textContent = t('passwordMismatch'); regPassConfirm.classList.add('error'); regPassConfirm.focus(); return; }
-                var pwProb = passwordProblem(password, username);
-                if (pwProb) { regError.textContent = pwProb; regPass.classList.add('error'); regPass.focus(); return; }
                 if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
                     regError.textContent = t('validRecoveryEmail');
                     if (emailEl) { emailEl.classList.add('error'); emailEl.focus(); }
                     return;
                 }
+                if (password !== confirm) { regError.textContent = t('passwordMismatch'); regPassConfirm.classList.add('error'); regPassConfirm.focus(); return; }
+                var pwProb = passwordProblem(password, email);
+                if (pwProb) { regError.textContent = pwProb; regPass.classList.add('error'); regPass.focus(); return; }
                 if (normalizePhone(phone).length < 7) {
                     regError.textContent = t('phoneForAccount');
                     if (phoneEl) { phoneEl.classList.add('error'); phoneEl.focus(); }
                     return;
                 }
-                if (findUser(username)) { regError.textContent = t('usernameTaken'); regUser.classList.add('error'); return; }
+                if (findUserByEmail(email) || findUser(email)) {
+                    regError.textContent = t('emailAlreadyRegistered');
+                    if (emailEl) { emailEl.classList.add('error'); emailEl.focus(); }
+                    return;
+                }
                 if (!cryptoAvailable()) { regError.textContent = t('securityUnavailable'); return; }
                 var btn = registerForm.querySelector('button[type="submit"]');
-                withBusy(btn, t('creating'), registerAccount(username, password, email, phone)).then(function(res) {
+                withBusy(btn, t('creating'), registerAccount(email, password, email, phone)).then(function(res) {
                     return enterApp(res.user).then(function() {
                         showToast(t('accountCreated') + res.user.username, 'success');
-                        showRecoveryCodeModal(res.recoveryCode, false);
+                        // Offer the fast PIN unlock once; the password still works.
+                        if (sessionDEK && !hasPin(res.user)) showPinSetup(res.user, sessionDEK, 'add');
                     });
                 }).catch(function(err) {
                     console.warn(err);
@@ -10713,7 +10745,7 @@
 
             loginUser.addEventListener('input', function() { loginUser.classList.remove('error'); loginError.textContent = ''; });
             loginPass.addEventListener('input', function() { loginPass.classList.remove('error'); loginError.textContent = ''; });
-            regUser.addEventListener('input', function() { regUser.classList.remove('error'); regError.textContent = ''; });
+            regEmail.addEventListener('input', function() { regEmail.classList.remove('error'); regError.textContent = ''; });
             regPass.addEventListener('input', function() { regPass.classList.remove('error'); regError.textContent = ''; });
             regPassConfirm.addEventListener('input', function() { regPassConfirm.classList.remove('error'); regError.textContent = ''; });
 
@@ -11349,6 +11381,11 @@
             var rcDone = $id('recCodeDoneBtn');
             if (rcDone) rcDone.addEventListener('click', function() {
                 var m = $id('recoveryCodeModal'); if (m) hideModal(m);
+                // A password account still unlocks by password; the PIN is the
+                // fast path, so offer it once right after sign-up.
+                if (currentUser && !hasPin(currentUser) && sessionDEK) {
+                    showPinSetup(currentUser, sessionDEK, 'add');
+                }
             });
 
             // ------------------------------------------------- forced password change
@@ -11788,7 +11825,8 @@
                 lockedUser = user;
                 lockUsePassword = false;
                 showView(queueView);
-                showLockScreen(t(hasPin(user) ? 'lockNotePin' : 'lockNotePw'));
+                var openNoteKey = hasPin(user) ? 'lockNotePin' : 'lockNotePw';
+                showLockScreen(t(openNoteKey), openNoteKey);
             } else {
                 clearSession();
                 showView(authView);
